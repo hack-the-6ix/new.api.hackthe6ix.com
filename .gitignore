@@ -1,0 +1,22 @@
+# deps
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# bun
+.bun/
+
+# build
+dist/
+
+#db
+db-data/
+
+#dotenv files
+.env
+.env.local
+.env.*.local
+.env.test
+.env.production
