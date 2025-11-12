@@ -16,3 +16,6 @@ How to run locally:
 Use Drizzle-kit cli tools for interfacing with database
 https://orm.drizzle.team/docs/kit-overview 
 
+## API Docs
+Use command: `bunx @rcmade/hono-docs generate --config ./hono-docs.ts` to generate OpenAPI specifications
+See here for more info: https://hono.dev/examples/hono-docs

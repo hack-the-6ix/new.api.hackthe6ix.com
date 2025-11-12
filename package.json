@@ -2,14 +2,16 @@
   "name": "ht6-api",
   "type": "module",
   "scripts": {
-    "dev:api": "bun run --hot src/server.ts",
+    "dev": "bun run --hot src/server.ts",
     "build": "bun build src/server.ts --outdir=dist",
     "start": "bun run dist/index.js",
-    "dev:seed": "cross-env DB_SEEDING=true bun run src/db/seed.ts",
+    "db:seed": "cross-env DB_SEEDING=true bun run src/db/seed.ts",
     "lint": "eslint .",
     "format": "prettier --write ./src/"
   },
   "dependencies": {
+    "@rcmade/hono-docs": "^1.0.30",
+    "@scalar/hono-api-reference": "^0.9.24",
     "dotenv": "^17.2.3",
     "dotenv-expand": "^12.0.3",
     "drizzle-orm": "^0.44.7",

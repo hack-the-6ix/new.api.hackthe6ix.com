@@ -7,6 +7,6 @@ if (!env.DB_SEEDING) {
   throw new Error('You must set DB_SEEDING to "true" when running seeds');
 }
 
-await seed(db, schema, {seed: 1, count: 10});
+await seed(db, schema, { seed: 1, count: 10 });
 
 console.log("Seeding completed.");

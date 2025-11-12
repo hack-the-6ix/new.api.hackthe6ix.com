@@ -1,0 +1,89 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "My API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Seasons"
+    },
+    {
+      "name": "Docs"
+    }
+  ],
+  "paths": {
+    "/api/season": {
+      "get": {
+        "summary": "Get all seasons",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a list of all seasons.",
+        "tags": [
+          "Seasons"
+        ]
+      }
+    },
+    "/api/docs": {
+      "get": {
+        "summary": "Get API Documentation",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "description": "Returns the styled API documentation page.",
+        "tags": [
+          "Documentation"
+        ]
+      }
+    },
+    "/api/docs/open-api": {
+      "get": {
+        "summary": "Get OpenAPI Specification",
+        "responses": {
+          "default": {
+            "description": "Default fallback response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "description": "Returns the raw OpenAPI specification JSON for the API.",
+        "tags": [
+          "Documentation"
+        ]
+      }
+    }
+  }
+}

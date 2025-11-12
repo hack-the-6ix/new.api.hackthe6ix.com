@@ -25,4 +25,3 @@ export const formResponse = pgTable("formResponse", {
   isSubmitted: boolean("isSubmitted").default(false),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
-
