@@ -5,7 +5,7 @@ import env from "@/config/env";
 
 export const client = new SQL(env.DATABASE_URL, {
   adapter: "postgres",
-  max: env.DB_SEEDING ? 1 : undefined,
+  max: env.DB_SEEDING ? 1 : 10,
 });
 
 export const db = drizzle(client, {

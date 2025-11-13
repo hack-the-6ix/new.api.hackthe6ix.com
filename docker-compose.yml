@@ -9,3 +9,15 @@ services:
       - ${DB_PORT}:5432
     volumes:
       - ./db-data:/var/lib/postgresql
+  api-dev:
+    image: oven/bun:canary-alpine
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: bun run dev
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
