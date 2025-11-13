@@ -10,8 +10,7 @@ How to run locally:
 3. `cd new.api.hackthe6ix.com`
 4. `bun install`
 5. `cp .env.example .env` to create env file
-6. `docker-compose up` for postgres instance
-7. `bun run dev` for hono server
+6. `docker-compose up` for postgres + api
 
 Use Drizzle-kit cli tools for interfacing with database
 https://orm.drizzle.team/docs/kit-overview 
