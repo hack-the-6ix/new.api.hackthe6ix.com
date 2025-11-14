@@ -11,7 +11,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "$/*": ["./*"]
-    }
+    },
+    "skipLibCheck": true,
+    "noEmit": true
   },
   "exclude": ["node_modules"],
   "include": ["src/**/*.ts"]
