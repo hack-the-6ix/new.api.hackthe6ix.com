@@ -43,7 +43,7 @@ seasonsRoute.post(
       if (res) {
         return c.json({ message: "success" });
       }
-      return c.json({ message: "Conflicting seasonCode" });
+      return c.json({ message: "Conflicting seasonCode" }, 400);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       return c.json({ message }, 400);
