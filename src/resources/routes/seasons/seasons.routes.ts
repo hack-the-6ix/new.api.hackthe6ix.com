@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
-import { createSeason } from "@/services/seasons.service";
+import { createSeason } from "@/resources/routes/seasons/seasons.service";
 
 const createSeasonBodySchema = z.object({
   seasonCode: z.string().length(3),

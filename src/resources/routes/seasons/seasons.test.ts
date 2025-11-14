@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { createSeason } from "@/services/seasons.service"
+import { createSeason } from "@/resources/routes/seasons/seasons.service";
 import { db } from "@/db";
 import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
 import { season } from "@/db/schema/season";
@@ -37,7 +37,7 @@ describe("createSeason", () => {
 
   it("returns true when insert succeeds", async () => {
     // setup
-    returningMock.mockResolvedValue([{ seasonId: "123" }]); 
+    returningMock.mockResolvedValue([{ seasonId: "123" }]);
 
     // exercise
     const result = await createSeason("S26");
@@ -49,7 +49,7 @@ describe("createSeason", () => {
 
   it("returns false when onConflictDoNothing causes no rows to insert", async () => {
     // setup
-    returningMock.mockResolvedValue([]); 
+    returningMock.mockResolvedValue([]);
 
     // exercise
     const result = await createSeason("S26");
