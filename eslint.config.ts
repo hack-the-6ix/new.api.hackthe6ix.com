@@ -7,7 +7,7 @@ import eslintConfigPrettier from "eslint-config-prettier/flat";
 export default defineConfig([
   // global ignores
   {
-    ignores: ["dist/**", "node_modules/**", "db-data/**"],
+    ignores: ["dist/**", "node_modules/**", "db-data/**", "migrations/**"],
   },
 
   js.configs.recommended,

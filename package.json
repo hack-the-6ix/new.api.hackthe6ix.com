@@ -1,5 +1,5 @@
 {
-  "name": "ht6-api",
+  "name": "new.api.hackthe6ix.com",
   "type": "module",
   "scripts": {
     "dev": "bun run --hot src/server.ts",
@@ -7,9 +7,9 @@
     "start": "bun run dist/index.js",
     "db:seed": "cross-env DB_SEEDING=true bun run src/db/utils/seed.ts",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . — fix",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write ./src/",
+    "lint:fix": "eslint . --fix --ext .ts",
+    "format": "prettier . --check ",
+    "format:fix": "prettier . --write",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage"
@@ -46,7 +46,7 @@
   "lint-staged": {
     "*.{js,ts,json}": [
       "eslint --fix",
-      "prettier --write ./src/"
+      "prettier . --write"
     ]
   }
 }
