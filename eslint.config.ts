@@ -1,9 +1,10 @@
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import prettierConfig from "eslint-config-prettier";
+import { defineConfig } from "eslint/config";
+import eslintConfigPrettier from "eslint-config-prettier/flat";
 
-export default [
+export default defineConfig([
   // global ignores
   {
     ignores: ["dist/**", "node_modules/**", "db-data/**"],
@@ -19,6 +20,5 @@ export default [
       },
     },
   },
-  // prettier config must be last to override other configs
-  prettierConfig,
-];
+  eslintConfigPrettier,
+]);

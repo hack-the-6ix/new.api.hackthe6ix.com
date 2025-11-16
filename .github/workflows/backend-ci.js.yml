@@ -5,26 +5,27 @@ name: Backend CI (lint, build, type, test check)
 
 on:
   push:
-    branches: '**'
+    branches: "**"
   pull_request:
-    branches: [ main, devlop ]
+    branches: [main, devlop]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Bun
-      uses: oven-sh/setup-bun@v1
-      with:
+      - uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+        with:
           bun-version: latest
-    - name: Install dependencies
-      run: bun install
-    - name: Typescript type check
-      run: bun run typecheck
-    - name: Lint check
-      run: bun run lint
-    - name: Run tests with coverage check
-      run: bun run test
-
+      - name: Install dependencies
+        run: bun install
+      - name: Typescript type check
+        run: bun run typecheck
+      - name: Lint check
+        run: bun run lint
+      - name: Format check
+        run: bun run format
+      - name: Run tests with coverage check
+        run: bun run test

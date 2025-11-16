@@ -7,8 +7,9 @@
     "start": "bun run dist/index.js",
     "db:seed": "cross-env DB_SEEDING=true bun run src/db/utils/seed.ts",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . — fix && prettier — write .",
-    "format": "prettier --write ./src/",
+    "lint:fix": "eslint . — fix",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write ./src/",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage"

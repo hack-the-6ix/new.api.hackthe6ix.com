@@ -20,3 +20,6 @@ db-data/
 .env.*.local
 .env.test
 .env.production
+
+#test coverage
+coverage/
