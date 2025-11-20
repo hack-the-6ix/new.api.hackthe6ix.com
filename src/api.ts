@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import seasonsRoute from "@/resources/routes/seasons/seasons.routes";
+import seasonsRoute from "@/resources/seasons/seasons.routes";
 
 const api = new Hono();
 
