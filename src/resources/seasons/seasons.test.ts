@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import { createSeason } from "@/resources/routes/seasons/seasons.service";
+import { createSeason } from "@/resources/seasons/seasons.service";
 import { db } from "@/db";
 import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
 import { season } from "@/db/schema/season";
