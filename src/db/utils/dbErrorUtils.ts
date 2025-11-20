@@ -69,9 +69,8 @@ export function getDbErrorMessage(error: unknown): {
     const originalError = error.cause;
 
     // Check if it is not bun-specific error code
-    if (originalError.code === "ERR_POSTGRES_SERVER_ERROR") {
-      const handler = PostgresErrorHandlers[originalError.code ?? "default"];
-
+    if (originalError.code.trim() === "ERR_POSTGRES_SERVER_ERROR") {
+      const handler = PostgresErrorHandlers[originalError.errno ?? "default"];
       if (handler) {
         return handler(originalError);
       }
