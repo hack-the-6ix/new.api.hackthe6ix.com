@@ -1,5 +1,5 @@
 {
-  "id": "6a77987b-5f9f-4679-9a17-f60a8989c118",
+  "id": "af6ce3ac-5e5d-4eef-a25c-161a6837f77a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -391,7 +391,17 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "formResponse_seasonCode_userId_formId_unique": {
+          "name": "formResponse_seasonCode_userId_formId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "seasonCode",
+            "userId",
+            "formId"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

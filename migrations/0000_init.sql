@@ -46,7 +46,8 @@ CREATE TABLE "formResponse" (
 	"seasonCode" char(3),
 	"responseJson" jsonb NOT NULL,
 	"isSubmitted" boolean DEFAULT false,
-	"updatedAt" timestamp DEFAULT now() NOT NULL
+	"updatedAt" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "formResponse_seasonCode_userId_formId_unique" UNIQUE("seasonCode","userId","formId")
 );
 --> statement-breakpoint
 CREATE TABLE "hacker" (
