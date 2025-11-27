@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { formResponse } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
 
 // Retrieve form responses based on filter criteria provided through arguments
@@ -27,6 +27,32 @@ export const getFormResponses = async (
   }
 };
 
+export const getRandomFormResponse = async (
+  formId: string,
+  seasonCode: string,
+) => {
+  try {
+    const responses = await db
+      .select()
+      .from(formResponse)
+      .where(
+        and(
+          eq(formResponse.formId, formId),
+          eq(formResponse.seasonCode, seasonCode),
+        ),
+      )
+      .orderBy(sql`RANDOM()`)
+      .limit(1);
+    if (responses.length === 0) {
+      return null;
+    }
+    return responses[0];
+  } catch (error) {
+    const dbError = getDbErrorMessage(error);
+    throw new Error(dbError.message);
+  }
+};
+
 export const validateFormResponseJson = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   formId: string,
@@ -42,7 +68,7 @@ export const validateFormResponseJson = (
 
 /*
     Upsert a form response for a certain form in a certain season by a certain user
-    
+
 */
 export const upsertFormResponse = async (
   seasonCode: string,

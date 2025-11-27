@@ -5,14 +5,15 @@ import {
   getFormResponses,
   validateFormResponseJson,
   upsertFormResponse,
+  getRandomFormResponse,
 } from "./responses.service";
 
 const formResponsesRoute = new Hono();
 
 const formResponseSchema = z.object({
-  formResponseId: z.uuid(),
-  formId: z.uuid(),
-  userId: z.uuid(),
+  formResponseId: z.uuidv7(),
+  formId: z.uuidv7(),
+  userId: z.uuidv7(),
   seasonCode: z.string().length(3),
   responseJson: z.json(),
   isSubmitted: z.boolean(),
@@ -21,6 +22,7 @@ const formResponseSchema = z.object({
 
 const getAllResponsesDescription = {
   description: "Get all form responses for a season",
+  tags: ["Form Responses"],
   responses: {
     200: {
       description: "Successful response",
@@ -37,8 +39,8 @@ formResponsesRoute.get(
   validator(
     "query",
     z.object({
-      formId: z.uuid().optional(),
-      userId: z.uuid().optional(),
+      formId: z.uuidv7().optional(),
+      userId: z.uuidv7().optional(),
     }),
   ),
   validator("param", z.object({ seasonCode: z.string().length(3) })),
@@ -48,6 +50,7 @@ formResponsesRoute.get(
 
     // need to implement check for proper auth/permissions here
     // i.e. only admins can get all responses of a form, users can only get their own
+    // alt: use middleware to enforce auth/permissions before reaching this point
 
     try {
       const responses = await getFormResponses(
@@ -65,6 +68,7 @@ formResponsesRoute.get(
 
 const upsertFormResponseDescription = {
   description: "Upsert a new form response for a certain form",
+  tags: ["Form Responses"],
   responses: {
     200: {
       description: "Successful response",
@@ -92,7 +96,7 @@ formResponsesRoute.post(
   describeRoute(upsertFormResponseDescription),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.uuidv7() }),
   ),
   validator(
     "json",
@@ -128,6 +132,43 @@ formResponsesRoute.post(
         body.isSubmitted,
       );
       return c.json({}, 200);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return c.json({ message }, 500);
+    }
+  },
+);
+
+const getRandomFormResponseDescription = {
+  description: "Get a random form response for a season",
+  tags: ["Form Responses"],
+  responses: {
+    200: {
+      description: "Successful response",
+      content: {
+        "application/json": { schema: resolver(formResponseSchema) },
+      },
+    },
+  },
+};
+
+formResponsesRoute.get(
+  "/seasons/:seasonCode/forms/:formId/responses/random",
+  describeRoute(getRandomFormResponseDescription),
+  validator(
+    "param",
+    z.object({ seasonCode: z.string().length(3), formId: z.uuidv7() }),
+  ),
+  async (c) => {
+    const seasonCode = c.req.valid("param").seasonCode;
+    const formId = c.req.valid("param").formId;
+
+    try {
+      const response = await getRandomFormResponse(formId, seasonCode);
+      if (!response) {
+        return c.json({ message: "No form responses found" }, 404);
+      }
+      return c.json(response);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       return c.json({ message }, 500);
