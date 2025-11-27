@@ -1,24 +1,43 @@
-# New HT6 API Backend
+# HT6 API Backend
 
-Main dependencies:
+## Dependencies
 
-- DrizzleORM
-- Hono
+* **Drizzle ORM**
+* **Hono**
 
-How to run locally:
+## Local Setup
 
-1. install bun and docker onto machine
-2. `git clone https://github.com/hack-the-6ix/new.api.hackthe6ix.com.git`
-3. `cd new.api.hackthe6ix.com`
-4. `bun install`
-5. `cp .env.example .env` to create env file
-6. `docker compose up` for postgres + api
+1. Install **Bun** and **Docker**.
+2. Clone the repository:
+   `git clone https://github.com/hack-the-6ix/new.api.hackthe6ix.com.git`
+3. Navigate into the project:
+   `cd new.api.hackthe6ix.com`
+4. Install dependencies:
+   `bun install`
+5. Create the environment file:
+   `cp .env.example .env`
+6. Start Postgres + API:
+   `docker compose up`
+   
+   **Alternative:**
 
-Use Drizzle-kit cli tools for interfacing with database
-https://orm.drizzle.team/docs/kit-overview
+   * Start only the database: `docker compose up db`
+   * Run the API separately: `bun run dev`
+8. Apply database schema:
+   `bunx drizzle-kit migrate`
+9. (Optional) Seed the database:
+   `bun run db:seed`
 
-## API Docs
+    * To reset and reseed: `bun run db:seed --reset` (DEV ONLY)
 
-API docs are on `/docs` endpoint.
+## Notes
 
-See here for how to document endpoints: https://hono.dev/examples/hono-openapi
+* Use the Drizzle Kit CLI to interact with the database:
+  [https://orm.drizzle.team/docs/kit-overview](https://orm.drizzle.team/docs/kit-overview)
+* `bunx drizzle-kit studio` is quite nice
+
+## API Documentation
+
+* Available at the `/docs` endpoint.
+* Reference for documenting endpoints:
+  [https://hono.dev/examples/hono-openapi](https://hono.dev/examples/hono-openapi)
