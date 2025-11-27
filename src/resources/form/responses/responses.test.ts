@@ -340,6 +340,61 @@ describe("Form Responses Service", () => {
       expect(whereArg).toHaveProperty("type", "and");
     });
   });
+
+  describe("POST /seasons/:seasonCode/forms/:formId/responses/:userId", () => {
+    it("should upsert a user's form response successfully (admin route)", async () => {
+      const insertMock = vi.fn(() => ({
+        values: vi.fn(() => ({
+          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+        })),
+      }));
+      (db.insert as Mock) = insertMock;
+
+      const res = await formResponsesRoute.request(
+        "/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/01937000-0000-7000-8000-000000000001",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            responseJson: { answer1: "test" },
+            isSubmitted: false,
+          }),
+        },
+      );
+
+      expect(res.status).toBe(200);
+    });
+
+    it("should return 500 on database error (admin route)", async () => {
+      const insertMock = vi.fn(() => ({
+        values: vi.fn(() => ({
+          onConflictDoUpdate: vi
+            .fn()
+            .mockRejectedValue(new Error("Database error")),
+        })),
+      }));
+      (db.insert as Mock) = insertMock;
+      (getDbErrorMessage as Mock).mockReturnValue({
+        message: "Database error",
+      });
+
+      const res = await formResponsesRoute.request(
+        "/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/01937000-0000-7000-8000-000000000001",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            responseJson: { answer1: "test" },
+            isSubmitted: true,
+          }),
+        },
+      );
+
+      expect(res.status).toBe(500);
+      const data = await res.json();
+      expect(data).toHaveProperty("message");
+    });
+  });
 });
 
 describe("Form Responses Routes", () => {
