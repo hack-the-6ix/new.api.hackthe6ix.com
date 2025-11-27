@@ -11,9 +11,9 @@ import {
 const formResponsesRoute = new Hono();
 
 const formResponseSchema = z.object({
-  formResponseId: z.uuidv7(),
-  formId: z.uuidv7(),
-  userId: z.uuidv7(),
+  formResponseId: z.guid(),
+  formId: z.guid(),
+  userId: z.guid(),
   seasonCode: z.string().length(3),
   responseJson: z.json(),
   isSubmitted: z.boolean(),
@@ -39,8 +39,8 @@ formResponsesRoute.get(
   validator(
     "query",
     z.object({
-      formId: z.uuidv7().optional(),
-      userId: z.uuidv7().optional(),
+      formId: z.guid().optional(),
+      userId: z.guid().optional(),
     }),
   ),
   validator("param", z.object({ seasonCode: z.string().length(3) })),
@@ -96,7 +96,7 @@ formResponsesRoute.post(
   describeRoute(upsertFormResponseDescription),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.uuidv7() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   validator(
     "json",
@@ -157,7 +157,7 @@ formResponsesRoute.get(
   describeRoute(getRandomFormResponseDescription),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.uuidv7() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   async (c) => {
     const seasonCode = c.req.valid("param").seasonCode;
