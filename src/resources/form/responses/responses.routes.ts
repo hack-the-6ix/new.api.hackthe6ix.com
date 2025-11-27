@@ -177,9 +177,12 @@ formResponsesRoute.post(
   },
 );
 
-const upsertFormResponseByUserDescription = upsertFormResponseDescription;
-upsertFormResponseByUserDescription.description =
-  "Upsert a new form response for a certain form by a certain user (Admin only)";
+const upsertFormResponseByUserDescription = {
+  description:
+    "Upsert a new form response for a certain form by a certain user (Admin only)",
+  tags: upsertFormResponseDescription.tags,
+  responses: upsertFormResponseDescription.responses,
+};
 
 formResponsesRoute.post(
   "/seasons/:seasonCode/forms/:formId/responses/:userId",
