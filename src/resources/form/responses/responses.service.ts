@@ -3,7 +3,8 @@ import { formResponse } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
 
-export const getAllFormResponses = async (
+// Retrieve form responses based on filter criteria provided through arguments
+export const getFormResponses = async (
   seasonCode: string,
   formId?: string,
   userId?: string,
@@ -39,7 +40,11 @@ export const validateFormResponseJson = (
   return []; // return array of validation error messages, empty array if valid
 };
 
-export const updateFormResponse = async (
+/*
+    Upsert a form response for a certain form in a certain season by a certain user
+    
+*/
+export const upsertFormResponse = async (
   seasonCode: string,
   userId: string,
   formId: string,
@@ -47,7 +52,7 @@ export const updateFormResponse = async (
   isSubmitted: boolean,
 ) => {
   try {
-    const result = await db
+    await db
       .insert(formResponse)
       .values({
         seasonCode,
@@ -68,7 +73,6 @@ export const updateFormResponse = async (
           updatedAt: new Date(),
         },
       });
-    return result;
   } catch (error) {
     const dbError = getDbErrorMessage(error);
     throw new Error(dbError.message);

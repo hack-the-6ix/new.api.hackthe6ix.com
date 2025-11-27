@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 import {
-  getAllFormResponses,
+  getFormResponses,
   validateFormResponseJson,
-  updateFormResponse,
+  upsertFormResponse,
 } from "./responses.service";
 
 const formResponsesRoute = new Hono();
@@ -16,7 +16,7 @@ const formResponseSchema = z.object({
   seasonCode: z.string().length(3),
   responseJson: z.json(),
   isSubmitted: z.boolean(),
-  updatedAt: z.date(),
+  updatedAt: z.iso.datetime(),
 });
 
 const getAllResponsesDescription = {
@@ -47,9 +47,10 @@ formResponsesRoute.get(
     const query = c.req.valid("query");
 
     // need to implement check for proper auth/permissions here
-    // e.x. only admins can get all responses of a form, users can only get their own
+    // i.e. only admins can get all responses of a form, users can only get their own
+
     try {
-      const responses = await getAllFormResponses(
+      const responses = await getFormResponses(
         seasonCode,
         query.formId,
         query.userId,
@@ -62,8 +63,8 @@ formResponsesRoute.get(
   },
 );
 
-const postNewResponseDescription = {
-  description: "Post a new form response for a season",
+const upsertFormResponseDescription = {
+  description: "Upsert a new form response for a certain form",
   responses: {
     200: {
       description: "Successful response",
@@ -85,9 +86,10 @@ const postNewResponseDescription = {
   },
 };
 
+// upsert form response
 formResponsesRoute.post(
   "/seasons/:seasonCode/forms/:formId/responses",
-  describeRoute(postNewResponseDescription),
+  describeRoute(upsertFormResponseDescription),
   validator(
     "param",
     z.object({ seasonCode: z.string().length(3), formId: z.uuid() }),
@@ -118,14 +120,14 @@ formResponsesRoute.post(
     }
 
     try {
-      await updateFormResponse(
+      await upsertFormResponse(
         params.seasonCode,
         userId,
         params.formId,
         body.responseJson,
         body.isSubmitted,
       );
-      return c.status(200);
+      return c.json({}, 200);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       return c.json({ message }, 500);

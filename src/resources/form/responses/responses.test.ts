@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import {
-  getAllFormResponses,
+  getFormResponses,
   validateFormResponseJson,
-  updateFormResponse,
+  upsertFormResponse,
 } from "./responses.service";
 import formResponsesRoute from "./responses.routes";
 import { db } from "@/db";
 import { formResponse } from "@/db/schema";
 import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
 
-// Mock dependencies
+// mock dependencies
 vi.mock("@/db", () => ({
   db: {
     select: vi.fn(),
@@ -52,7 +52,7 @@ describe("Form Responses Service", () => {
     });
 
     it("should return all form responses for a season", async () => {
-      // Setup
+      // setup
       const mockResponses = [
         {
           formResponseId: "response-1",
@@ -66,17 +66,17 @@ describe("Form Responses Service", () => {
       ];
       whereMock.mockResolvedValue(mockResponses);
 
-      // Exercise
-      const result = await getAllFormResponses("S26");
+      // exercise
+      const result = await getFormResponses("S26");
 
-      // Verify
+      // verify
       expect(result).toEqual(mockResponses);
       expect(selectMock).toHaveBeenCalled();
       expect(fromMock).toHaveBeenCalledWith(formResponse);
     });
 
     it("should filter by formId when provided", async () => {
-      // Setup
+      // setup
       const mockResponses = [
         {
           formResponseId: "response-1",
@@ -90,14 +90,14 @@ describe("Form Responses Service", () => {
       ];
       whereMock.mockResolvedValue(mockResponses);
 
-      const result = await getAllFormResponses("S26", "form-1");
+      const result = await getFormResponses("S26", "form-1");
 
       expect(result).toEqual(mockResponses);
       expect(whereMock).toHaveBeenCalled();
     });
 
     it("should filter by userId when provided", async () => {
-      // Setup
+      // setup
       const mockResponses = [
         {
           formResponseId: "response-1",
@@ -111,23 +111,23 @@ describe("Form Responses Service", () => {
       ];
       whereMock.mockResolvedValue(mockResponses);
 
-      // Exercise
-      const result = await getAllFormResponses("S26", undefined, "user-1");
+      // exercise
+      const result = await getFormResponses("S26", undefined, "user-1");
 
-      // Verify
+      // verify
       expect(result).toEqual(mockResponses);
       expect(whereMock).toHaveBeenCalled();
     });
 
     it("should throw wrapped db error on failure", async () => {
-      // Setup
+      // setup
       const dbError = new Error("Database connection failed");
       whereMock.mockRejectedValue(dbError);
       (getDbErrorMessage as Mock).mockReturnValue({
         message: "DB_CONNECTION_ERROR",
       });
 
-      await expect(getAllFormResponses("S26")).rejects.toThrow(
+      await expect(getFormResponses("S26")).rejects.toThrow(
         "DB_CONNECTION_ERROR",
       );
       expect(getDbErrorMessage).toHaveBeenCalledWith(dbError);
@@ -161,15 +161,15 @@ describe("Form Responses Service", () => {
     });
 
     it("should insert a new form response", async () => {
-      // Setup
+      // setup
       const seasonCode = "S26";
       const userId = "user-1";
       const formId = "form-1";
       const responseJson = { answer1: "test" };
       const isSubmitted = false;
 
-      // Exercise
-      await updateFormResponse(
+      // exercise
+      await upsertFormResponse(
         seasonCode,
         userId,
         formId,
@@ -177,7 +177,7 @@ describe("Form Responses Service", () => {
         isSubmitted,
       );
 
-      // Verify
+      // verify
       expect(insertMock).toHaveBeenCalledWith(formResponse);
       expect(valuesMock).toHaveBeenCalledWith({
         seasonCode,
@@ -201,15 +201,15 @@ describe("Form Responses Service", () => {
     });
 
     it("should update existing form response on conflict", async () => {
-      // Setup
+      // setup
       const seasonCode = "S26";
       const userId = "user-1";
       const formId = "form-1";
       const responseJson = { answer1: "updated" };
       const isSubmitted = true;
 
-      // Exercise
-      await updateFormResponse(
+      // exercise
+      await upsertFormResponse(
         seasonCode,
         userId,
         formId,
@@ -217,7 +217,7 @@ describe("Form Responses Service", () => {
         isSubmitted,
       );
 
-      // Verify
+      // verify
       expect(onConflictDoUpdateMock).toHaveBeenCalledWith({
         target: [
           formResponse.seasonCode,
@@ -232,16 +232,16 @@ describe("Form Responses Service", () => {
     });
 
     it("should throw wrapped db error on failure", async () => {
-      // Setup
+      // setup
       const dbError = new Error("Unique constraint violation");
       onConflictDoUpdateMock.mockRejectedValue(dbError);
       (getDbErrorMessage as Mock).mockReturnValue({
         message: "DB_CONSTRAINT_ERROR",
       });
 
-      // Verify
+      // verify
       await expect(
-        updateFormResponse("S26", "user-1", "form-1", {}, false),
+        upsertFormResponse("S26", "user-1", "form-1", {}, false),
       ).rejects.toThrow("DB_CONSTRAINT_ERROR");
       expect(getDbErrorMessage).toHaveBeenCalledWith(dbError);
     });
@@ -251,7 +251,7 @@ describe("Form Responses Service", () => {
 describe("Form Responses Routes", () => {
   describe("GET /seasons/:seasonCode/responses", () => {
     it("should return form responses for a season", async () => {
-      // Setup
+      // setup
       const mockResponses = [
         {
           formResponseId: "response-1",
@@ -271,19 +271,19 @@ describe("Form Responses Routes", () => {
       }));
       (db.select as Mock) = selectMock;
 
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request("/seasons/S26/responses", {
         method: "GET",
       });
 
-      // Verify
+      // verify
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data).toEqual(mockResponses);
     });
 
     it("should filter by formId query parameter", async () => {
-      // Setup
+      // setup
       const mockResponses = [
         {
           formResponseId: "response-1",
@@ -303,7 +303,7 @@ describe("Form Responses Routes", () => {
       }));
       (db.select as Mock) = selectMock;
 
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request(
         "/seasons/S26/responses?formId=550e8400-e29b-41d4-a716-446655440000",
         {
@@ -311,14 +311,14 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // Verify
+      // verify
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data).toEqual(mockResponses);
     });
 
     it("should return 500 on database error", async () => {
-      // Setup
+      // setup
       const selectMock = vi.fn(() => ({
         from: vi.fn(() => ({
           where: vi.fn().mockRejectedValue(new Error("Database error")),
@@ -329,12 +329,12 @@ describe("Form Responses Routes", () => {
         message: "Database error",
       });
 
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request("/seasons/S26/responses", {
         method: "GET",
       });
 
-      // Verify
+      // verify
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data).toHaveProperty("message");
@@ -343,7 +343,7 @@ describe("Form Responses Routes", () => {
 
   describe("POST /seasons/:seasonCode/forms/:formId/responses", () => {
     it("should create/update form response successfully", async () => {
-      // Setup
+      // setup
       const insertMock = vi.fn(() => ({
         values: vi.fn(() => ({
           onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
@@ -351,7 +351,7 @@ describe("Form Responses Routes", () => {
       }));
       (db.insert as Mock) = insertMock;
 
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request(
         "/seasons/S26/forms/550e8400-e29b-41d4-a716-446655440000/responses",
         {
@@ -367,12 +367,12 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // Verify
+      // verify
       expect(res.status).toBe(200);
     });
 
     it("should return 500 on database error", async () => {
-      // Setup
+      // setup
       const insertMock = vi.fn(() => ({
         values: vi.fn(() => ({
           onConflictDoUpdate: vi
@@ -385,7 +385,7 @@ describe("Form Responses Routes", () => {
         message: "Database error",
       });
 
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request(
         "/seasons/S26/forms/550e8400-e29b-41d4-a716-446655440000/responses",
         {
@@ -401,14 +401,14 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // Verify
+      // verify
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data).toHaveProperty("message");
     });
 
     it("should return 400 for invalid UUID in path", async () => {
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request(
         "/seasons/S26/forms/invalid-uuid/responses",
         {
@@ -424,12 +424,14 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // Verify
+      // verify
       expect(res.status).toBe(400);
     });
 
+    // test is not really meaningful since zod validation automatically checks types
+    // only included for completeness
     it("should return 400 for missing required fields", async () => {
-      // Exercise
+      // exercise
       const res = await formResponsesRoute.request(
         "/seasons/S26/forms/550e8400-e29b-41d4-a716-446655440000/responses",
         {
@@ -444,7 +446,7 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // Verify
+      // verify
       expect(res.status).toBe(400);
     });
   });
