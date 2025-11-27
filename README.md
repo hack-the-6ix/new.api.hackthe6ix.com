@@ -8,24 +8,24 @@
 ## Local Setup
 
 1. Install **Bun** and **Docker**.
-2. Clone the repository:
+2. Clone the repository:  
    `git clone https://github.com/hack-the-6ix/new.api.hackthe6ix.com.git`
-3. Navigate into the project:
+4. Navigate into the project:  
    `cd new.api.hackthe6ix.com`
-4. Install dependencies:
+5. Install dependencies:  
    `bun install`
-5. Create the environment file:
+6. Create the environment file:  
    `cp .env.example .env`
-6. Start Postgres + API:
+7. Start Postgres + API:  
    `docker compose up`
    
    **Alternative:**
 
    * Start only the database: `docker compose up db`
    * Run the API separately: `bun run dev`
-8. Apply database schema:
+8. Apply database schema:  
    `bunx drizzle-kit migrate`
-9. (Optional) Seed the database:
+9. (Optional) Seed the database:  
    `bun run db:seed`
 
     * To reset and reseed: `bun run db:seed --reset` (DEV ONLY)
