@@ -1,39 +1,90 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { fetchEvents } from "./events.service";
+import { checkInUser, createEvent, fetchEvents } from "./events.service";
+import { validator } from "hono-openapi";
 
-const createSeasonBodySchema = z.object({
-  seasonCode: z.string().length(3),
+const eventBodySchema = z.object({
+  eventName: z.string().min(1, "Event name is required"),
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+});
+
+const checkInBodySchema = z.object({
+  userId: z.string().uuid("Invalid userId format"),
+  checkInAuthor: z.string().uuid("Invalid checkInAuthor format"), // Ensure checkInAuthor is a valid UUID
 });
 
 const eventsRoute = new Hono();
 
+// list all events
 eventsRoute.get("/seasons/:seasonCode/events", async (c) => {
   const seasonCode = c.req.param("seasonCode");
-
-  const parsed = createSeasonBodySchema.safeParse({ seasonCode });
-  if (!parsed.success) {
-    return c.json({ message: "Invalid seasonCode" }, 400);
-  }
-
   try {
-    const res = await fetchEvents(parsed.data.seasonCode);
-    if (res) {
-      return c.json({
-        message: `Events from ${parsed.data.seasonCode} requested!`,
-        data: res,
-      });
-    }
-    return c.json({ message: "No events found for the given seasonCode" }, 404);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ message }, 500);
+    const events = await fetchEvents(seasonCode);
+    return events.length
+      ? c.json({ data: events })
+      : c.json({ message: "No events found" }, 404);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch events";
+    return c.json({ message }, 400);
   }
 });
 
-// eventsRoute.post("/seasons/:seasonCode/events:eventId", async (c) => {
-//   const seasonCode = c.req.param("seasonCode");
-//   const eventId = c.req.param("eventId");
-// });
+// create new event
+eventsRoute.post(
+  "/seasons/:seasonCode/events/:eventId",
+  validator("json", eventBodySchema),
+  async (c) => {
+    const seasonCode = c.req.param("seasonCode");
+    const eventId = c.req.param("eventId");
+    const body = await c.req.json();
+
+    try {
+      const result = await createEvent(
+        seasonCode,
+        eventId,
+        body.data.eventName,
+        body.data.startTime,
+        body.data.endTime,
+      );
+
+      return result
+        ? c.json({ message: "Event created successfully", data: result }, 201)
+        : c.json({ message: "Event already exists" }, 409);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create event";
+      return c.json({ message }, 400);
+    }
+  },
+);
+
+eventsRoute.post(
+  "/seasons/:seasonCode/events/:eventId/check-in",
+  validator("json", checkInBodySchema),
+  async (c) => {
+    const seasonCode = c.req.param("seasonCode");
+    const eventId = c.req.param("eventId");
+    const body = await c.req.json();
+
+    try {
+      const result = await checkInUser(
+        seasonCode,
+        eventId,
+        body.data.userId,
+        body.data.checkInAuthor,
+        body.data.checkInNotes,
+      );
+      return result
+        ? c.json({ message: "User checked in successfully", data: result }, 200)
+        : c.json({ message: "Failed to check in user" }, 500);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to check in user";
+      return c.json({ message }, 400);
+    }
+  },
+);
 
 export default eventsRoute;
