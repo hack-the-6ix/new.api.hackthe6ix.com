@@ -3,4 +3,5 @@ node_modules/
 dist/
 migrations/
 coverage/
+README.md
 *lock*
