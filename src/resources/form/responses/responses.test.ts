@@ -362,7 +362,7 @@ describe("Form Responses Service", () => {
         },
       );
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
     });
 
     it("should return 500 on database error (admin route)", async () => {
@@ -517,7 +517,7 @@ describe("Form Responses Routes", () => {
       );
 
       // verify
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
     });
 
     it("should return 500 on database error", async () => {

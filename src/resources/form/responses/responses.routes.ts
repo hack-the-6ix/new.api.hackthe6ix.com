@@ -108,7 +108,7 @@ const upsertFormResponseDescription = {
   description: "Upsert a new form response for a certain form (All users)",
   tags: ["Form Responses"],
   responses: {
-    200: {
+    201: {
       description: "Successful response",
       // no response body (just a status code should suffice)
     },
@@ -169,7 +169,7 @@ formResponsesRoute.post(
         body.responseJson,
         body.isSubmitted,
       );
-      return c.json({}, 200);
+      return c.json({}, 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       return c.json({ message }, 500);
@@ -225,7 +225,7 @@ formResponsesRoute.post(
         body.responseJson,
         body.isSubmitted,
       );
-      return c.json({}, 200);
+      return c.json({}, 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       return c.json({ message }, 500);
