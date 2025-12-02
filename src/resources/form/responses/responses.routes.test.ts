@@ -279,7 +279,7 @@ describe("Form Responses Routes", () => {
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
         {
-          method: "GET",
+          method: "POST",
         },
       );
 
@@ -306,7 +306,7 @@ describe("Form Responses Routes", () => {
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
         {
-          method: "GET",
+          method: "POST",
         },
       );
 
@@ -340,7 +340,7 @@ describe("Form Responses Routes", () => {
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
         {
-          method: "GET",
+          method: "POST",
         },
       );
 
@@ -357,7 +357,7 @@ describe("Form Responses Routes", () => {
       const res = await app.request(
         "/api/seasons/S26/forms/invalid-uuid/responses/random",
         {
-          method: "GET",
+          method: "POST",
         },
       );
 
@@ -370,7 +370,7 @@ describe("Form Responses Routes", () => {
       const res = await app.request(
         "/api/seasons/INVALID/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
         {
-          method: "GET",
+          method: "POST",
         },
       );
 
@@ -401,7 +401,7 @@ describe("Form Responses Routes", () => {
       await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
         {
-          method: "GET",
+          method: "POST",
         },
       );
 
