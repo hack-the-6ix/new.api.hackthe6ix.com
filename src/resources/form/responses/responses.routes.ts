@@ -84,7 +84,7 @@ const getRandomFormResponseDescription = {
   },
 };
 
-formResponsesRoute.get(
+formResponsesRoute.post(
   "/seasons/:seasonCode/forms/:formId/responses/random",
   describeRoute(getRandomFormResponseDescription),
   validator(
@@ -142,7 +142,7 @@ formResponsesRoute.post(
     const params = c.req.valid("param");
     const body = c.req.valid("json");
 
-    const userIdFromRequest = body.sessionToken; // TODO: would instead be extracted from sessionToken in actual implementation
+    const userIdFromRequest = body.sessionToken; // TODO: would instead be extracted from sessionToken in actual implementation (or have middleware do it)
 
     // if targetUserId is supplied and request is made by admin, allow upsert for specified userId, else use userId from sessionToken
     const userId =
