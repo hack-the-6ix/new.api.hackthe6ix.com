@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { season } from "@/db/schema/season";
-import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 
 export const createSeason = async (seasonCode: string) => {
   try {
@@ -14,7 +14,6 @@ export const createSeason = async (seasonCode: string) => {
     }
     return true;
   } catch (error: unknown) {
-    const dbError = getDbErrorMessage(error);
-    throw new Error(dbError.message);
+    throw handleDbError(error);
   }
 };

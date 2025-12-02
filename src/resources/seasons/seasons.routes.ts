@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import { z } from "zod";
 import { createSeason } from "@/resources/seasons/seasons.service";
+import { ApiError } from "@/lib/errors";
+import { genericErrorResponse } from "@/config/openapi";
 
 const createSeasonBodySchema = z.object({
   seasonCode: z.string().length(3),
@@ -20,12 +22,8 @@ const createSeasonResponse = {
         "application/json": { schema: resolver(seasonResponseSchema) },
       },
     },
-    400: {
-      description: "Bad request",
-      content: {
-        "application/json": { schema: resolver(seasonResponseSchema) },
-      },
-    },
+    ...genericErrorResponse(409),
+    ...genericErrorResponse(500),
   },
 };
 
@@ -37,17 +35,14 @@ seasonsRoute.post(
   validator("json", createSeasonBodySchema),
   async (c) => {
     const query = c.req.valid("json");
-
-    try {
-      const res = await createSeason(query.seasonCode);
-      if (res) {
-        return c.json({ message: "success" });
-      }
-      return c.json({ message: "Conflicting seasonCode" }, 400);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return c.json({ message }, 400);
+    const res = await createSeason(query.seasonCode);
+    if (!res) {
+      throw new ApiError(409, {
+        code: "CONFLICT",
+        message: "Conflicting seasonCode",
+      });
     }
+    return c.json({ message: "success" });
   },
 );
 

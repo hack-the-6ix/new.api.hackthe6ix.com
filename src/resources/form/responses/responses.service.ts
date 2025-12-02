@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { formResponse } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 
 // Retrieve form responses based on filter criteria provided through arguments
 export const getFormResponses = async (
@@ -22,8 +22,7 @@ export const getFormResponses = async (
       );
     return responses;
   } catch (error) {
-    const dbError = getDbErrorMessage(error);
-    throw new Error(dbError.message);
+    throw handleDbError(error);
   }
 };
 
@@ -48,8 +47,7 @@ export const getRandomFormResponse = async (
     }
     return responses[0];
   } catch (error) {
-    const dbError = getDbErrorMessage(error);
-    throw new Error(dbError.message);
+    throw handleDbError(error);
   }
 };
 
@@ -59,16 +57,13 @@ export const validateFormResponseJson = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   responseJson: unknown,
 ) => {
-  // implement validation logic here
+  // TODO: implement validation logic here
   // get questions from form question table based on formId
   // check that responseJson has valid answers for each question based on question type and tags
-
-  return []; // return array of validation error messages, empty array if valid
 };
 
 /*
     Upsert a form response for a certain form in a certain season by a certain user
-
 */
 export const upsertFormResponse = async (
   seasonCode: string,
@@ -100,7 +95,6 @@ export const upsertFormResponse = async (
         },
       });
   } catch (error) {
-    const dbError = getDbErrorMessage(error);
-    throw new Error(dbError.message);
+    throw handleDbError(error);
   }
 };
