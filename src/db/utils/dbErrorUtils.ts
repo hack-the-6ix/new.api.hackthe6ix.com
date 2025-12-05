@@ -1,6 +1,6 @@
 import { DrizzleQueryError, DrizzleError } from "drizzle-orm";
 import { SQL } from "bun";
-import { ApiError } from "@/lib/errors";
+import { ApiError, DBError } from "@/lib/errors";
 
 // DrizzleORM returns DrizzleQueryError which wraps the original SQL error from the SQL driver we use
 // See this discussion: https://github.com/drizzle-team/drizzle-orm/discussions/916
@@ -15,13 +15,13 @@ const PostgresErrorHandlers: Record<string, ErrorHandler> = {
   "23505": (error: SQL.PostgresError) =>
     new ApiError(409, {
       code: "UNIQUE_VIOLATION",
-      message: "A duplicate entry was found for a unique field.",
+      message: "The value you are trying to insert already exists.",
       detail: `Constraint: ${error.constraint}`,
       suggestion: "Ensure the value is unique or update the existing record.",
     }),
   // Foreign key violation (23503)
   "23503": (error: SQL.PostgresError) =>
-    new ApiError(409, {
+    new DBError(409, {
       code: "FOREIGN_KEY_VIOLATION",
       message:
         "A foreign key violation occurred. The record you are trying to link does not exist.",
@@ -29,17 +29,18 @@ const PostgresErrorHandlers: Record<string, ErrorHandler> = {
       suggestion: "Verify the related record exists before linking.",
     }),
   // Invalid text representation (22P02)
-  "22P02": () =>
-    new ApiError(400, {
+  "22P02": (error: SQL.PostgresError) =>
+    new DBError(400, {
       code: "INVALID_TEXT_REPRESENTATION",
       message:
         "The data provided is in an invalid format (e.g., not a valid UUID).",
+      detail: error.detail,
       suggestion:
         "Check the data format and ensure it matches the expected type.",
     }),
   // Check constraint violation (23514)
   "23514": (error: SQL.PostgresError) =>
-    new ApiError(409, {
+    new DBError(409, {
       code: "CHECK_VIOLATION",
       message: "A check constraint was violated.",
       detail: `Constraint: ${error.constraint}`,
@@ -47,40 +48,46 @@ const PostgresErrorHandlers: Record<string, ErrorHandler> = {
         "Review the constraint rules and adjust your data accordingly.",
     }),
   // Not null violation (23502)
+  // Ideally should be caught by application-level validation before ever reaching DB, will still keep as ApiError just in case
   "23502": (error: SQL.PostgresError) =>
     new ApiError(400, {
       code: "NOT_NULL_VIOLATION",
-      message: `A required field is missing. The column '${error.column}' cannot be null.`,
-      detail: `Column: ${error.column}`,
+      message: `A required field is missing.`,
+      detail: error.detail || `Column: ${error.column}`,
       suggestion: `Provide a value for the '${error.column}' field.`,
     }),
   // Undefined column (42703)
   "42703": (error: SQL.PostgresError) =>
-    new ApiError(500, {
+    new DBError(500, {
       code: "UNDEFINED_COLUMN",
       message: "An undefined column was referenced in the query.",
-      detail: `Column: ${error.column}`,
-      suggestion: "This is a server error. Please contact support.",
+      detail: error.detail || `Column: ${error.column}`,
+      suggestion: error.hint || "Check database schema.",
     }),
   // Syntax error (42601)
-  "42601": () =>
-    new ApiError(500, {
+  "42601": (error: SQL.PostgresError) =>
+    new DBError(500, {
       code: "SYNTAX_ERROR",
       message: "There's a syntax error in the database query.",
-      suggestion: "This is a server error. Please contact support.",
+      detail: error.detail,
+      suggestion: error.hint || "Check DrizzleORM query syntax.",
     }),
   // Undefined table (42P01)
-  "42P01": () =>
-    new ApiError(500, {
+  "42P01": (error: SQL.PostgresError) =>
+    new DBError(500, {
       code: "UNDEFINED_TABLE",
       message: "A referenced table does not exist in the database.",
-      suggestion: "This is a server error. Please contact support.",
+      detail: error.detail,
+      suggestion:
+        error.hint || "This is a server error. Check database schema.",
     }),
   default: (error: SQL.PostgresError) =>
-    new ApiError(500, {
+    new DBError(500, {
       code: "DATABASE_ERROR",
       message: `A database error occurred: ${error.message}`,
-      detail: error.constraint ? `Constraint: ${error.constraint}` : undefined,
+      detail: error.constraint
+        ? `Constraint: ${error.constraint}`
+        : error.detail,
     }),
 };
 

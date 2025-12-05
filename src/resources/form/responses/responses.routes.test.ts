@@ -1,9 +1,28 @@
-import { describe, it, expect, vi, type Mock } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  afterAll,
+  type Mock,
+} from "vitest";
 import app from "@/server";
 import { db } from "@/db";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { ApiError } from "@/lib/errors";
 import { isAdmin } from "@/lib/auth";
+
+// Suppress console.error for cleaner test output
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+beforeAll(() => {
+  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
 
 // mock dependencies
 vi.mock("@/db", () => ({
@@ -131,8 +150,8 @@ describe("Form Responses Routes", () => {
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data).toHaveProperty("success", false);
-      expect(data).toHaveProperty("errors");
-      expect(Array.isArray(data.errors)).toBe(true);
+      expect(data).toHaveProperty("error");
+      expect(Array.isArray(data.error)).toBe(true);
     });
   });
 
@@ -203,8 +222,8 @@ describe("Form Responses Routes", () => {
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data).toHaveProperty("success", false);
-      expect(data).toHaveProperty("errors");
-      expect(Array.isArray(data.errors)).toBe(true);
+      expect(data).toHaveProperty("error");
+      expect(Array.isArray(data.error)).toBe(true);
     });
 
     it("should return 400 for invalid UUID in path", async () => {
@@ -251,7 +270,7 @@ describe("Form Responses Routes", () => {
     });
   });
 
-  describe("GET /seasons/:seasonCode/forms/:formId/responses/random", () => {
+  describe("POST /seasons/:seasonCode/forms/:formId/responses/random", () => {
     it("should return a random form response", async () => {
       // setup
       const mockResponse = {
@@ -314,7 +333,7 @@ describe("Form Responses Routes", () => {
       expect(res.status).toBe(409);
       const data = await res.json();
       expect(data).toHaveProperty("success", false);
-      expect(data.errors[0]).toHaveProperty("code", "FORM_RESPONSES_NOT_FOUND");
+      expect(data.error[0]).toHaveProperty("code", "FORM_RESPONSES_NOT_FOUND");
     });
 
     it("should return 500 on database error", async () => {
@@ -348,8 +367,8 @@ describe("Form Responses Routes", () => {
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data).toHaveProperty("success", false);
-      expect(data).toHaveProperty("errors");
-      expect(Array.isArray(data.errors)).toBe(true);
+      expect(data).toHaveProperty("error");
+      expect(Array.isArray(data.error)).toBe(true);
     });
 
     it("should return 400 for invalid UUID in path", async () => {

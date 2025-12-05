@@ -19,7 +19,7 @@ export const errorDetailSchema = z.object({
  */
 export const errorResponseSchema = z.object({
   success: z.literal(false),
-  errors: z.array(errorDetailSchema),
+  error: z.array(errorDetailSchema),
   timestamp: z.iso.time(),
 });
 
@@ -27,46 +27,87 @@ export type ErrorDetail = z.infer<typeof errorDetailSchema>;
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export class ApiError extends HTTPException {
-  public errors: ErrorDetail[];
+  public error: ErrorDetail[]; // singular simply because zod validation error response uses 'error' key as well. slightly annoying but oh well
   public timestamp: string;
 
   constructor(
     statusCode: ContentfulStatusCode,
-    errors: ErrorDetail | ErrorDetail[],
+    error: ErrorDetail | ErrorDetail[],
   ) {
-    const errorArray: ErrorDetail[] = Array.isArray(errors) ? errors : [errors]; //enforce is array
+    const errorArray: ErrorDetail[] = [error].flat(); //enforce is array
 
     // doesn't matter which message we pass to super, as toJSON() will be used for response body anyways
     super(statusCode, { message: errorArray[0]?.message });
-    this.errors = errorArray;
+    this.error = errorArray;
     this.timestamp = new Date().toUTCString();
   }
 
+  toAdminJSON(): ErrorResponse {
+    return {
+      success: false,
+      error: this.error,
+      timestamp: this.timestamp,
+    };
+  }
+
+  // For default access level, omit 'detail' and 'suggestion' field from errors
+  // TODO: specify this in the documentation (low priority)
+  toJSON(): ErrorResponse {
+    const userErrors = this.error.map(({ code, message }) => ({
+      code,
+      message,
+    }));
+
+    return {
+      success: false,
+      error: userErrors,
+      timestamp: this.timestamp,
+    };
+  }
+}
+
+export class DBError extends ApiError {
+  // hide all database details from regular users
   toJSON(): ErrorResponse {
     return {
       success: false,
-      errors: this.errors,
+      error: [
+        {
+          code: "DATABASE_ERROR",
+          message:
+            "A database error occurred. Contact support if the issue persists.",
+        },
+      ],
       timestamp: this.timestamp,
     };
   }
 }
 
 export const handleError = (error: unknown, c: Context) => {
+  const userType: "user" | "admin" = "admin"; // TODO: determine user type from context in real implementation
+
   if (error instanceof ApiError) {
+    // only logging internal server errors to avoid cluttering logs, can be adjusted to include more error codes
+    if (error.status === 500 || error instanceof DBError) {
+      console.error(error);
+    }
+    if (userType === "admin") {
+      return c.json(error.toAdminJSON(), error.status);
+    }
     return c.json(error.toJSON(), error.status);
   } else {
     console.error("Unhandled error:", error);
     return c.json(
       {
         success: false,
-        errors: [
+        error: [
           {
             code: "INTERNAL_SERVER_ERROR",
             message: "An unexpected error occurred.",
-            detail: String(error),
-            suggestion: "Please try again later.",
+            detail: userType === "admin" ? String(error) : undefined,
           },
         ],
+        timestamp: new Date().toUTCString(),
       },
       500,
     );
