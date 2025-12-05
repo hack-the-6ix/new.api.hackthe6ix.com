@@ -1,6 +1,7 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
-import { openAPIRouteHandler } from "hono-openapi";
+import { openAPIRouteHandler, resolver } from "hono-openapi";
+import { errorResponseSchema } from "@/lib/errors";
 
 const configureOpenAPI = (app: Hono) => {
   app.get(
@@ -28,6 +29,26 @@ const configureOpenAPI = (app: Hono) => {
       },
     }),
   );
+};
+
+export const genericErrorResponse = (errorCode: number) => {
+  const descriptionMap: Record<number, string> = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    409: "Conflict",
+    500: "Internal Server Error",
+  };
+
+  return {
+    [errorCode]: {
+      description: descriptionMap[errorCode] || "Error",
+      content: {
+        "application/json": { schema: resolver(errorResponseSchema) },
+      },
+    },
+  };
 };
 
 export default configureOpenAPI;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { createSeason } from "@/resources/seasons/seasons.service";
 import { db } from "@/db";
-import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { season } from "@/db/schema/season";
 
 vi.mock("@/db", () => ({
@@ -15,7 +15,7 @@ vi.mock("@/db/schema/season", () => ({
 }));
 
 vi.mock("@/db/utils/dbErrorUtils", () => ({
-  getDbErrorMessage: vi.fn(),
+  handleDbError: vi.fn(),
 }));
 
 describe("createSeason", () => {
@@ -61,14 +61,13 @@ describe("createSeason", () => {
   it("throws wrapped db error", async () => {
     // setup
     const error = new Error("db failed");
+    const apiError = new Error("DB_BAD");
 
     // exercise - simulate DB throwing
     returningMock.mockRejectedValue(error);
 
     // verify
-    (getDbErrorMessage as Mock).mockReturnValue({
-      message: "DB_BAD",
-    });
+    (handleDbError as Mock).mockReturnValue(apiError);
     await expect(createSeason("S26")).rejects.toThrow("DB_BAD");
   });
 });
