@@ -84,14 +84,14 @@ export class DBError extends ApiError {
 }
 
 export const handleError = (error: unknown, c: Context) => {
-  const userType: "user" | "admin" = "admin"; // TODO: determine user type from context in real implementation
+  const isAdmin: boolean = true; // TODO: determine user type from context in real implementation
 
   if (error instanceof ApiError) {
     // only logging internal server errors to avoid cluttering logs, can be adjusted to include more error codes
     if (error.status === 500 || error instanceof DBError) {
       console.error(error);
     }
-    if (userType === "admin") {
+    if (isAdmin) {
       return c.json(error.toAdminJSON(), error.status);
     }
     return c.json(error.toJSON(), error.status);
@@ -104,7 +104,7 @@ export const handleError = (error: unknown, c: Context) => {
           {
             code: "INTERNAL_SERVER_ERROR",
             message: "An unexpected error occurred.",
-            detail: userType === "admin" ? String(error) : undefined,
+            detail: isAdmin ? String(error) : undefined,
           },
         ],
         timestamp: new Date().toUTCString(),
