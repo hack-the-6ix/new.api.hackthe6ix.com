@@ -1,0 +1,854 @@
+{
+  "id": "88e14a5d-a710-4589-be70-56f74ee57b76",
+  "prevId": "af6ce3ac-5e5d-4eef-a25c-161a6837f77a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.admin": {
+      "name": "admin",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "superUser": {
+          "name": "superUser",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.event": {
+      "name": "event",
+      "schema": "",
+      "columns": {
+        "eventId": {
+          "name": "eventId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eventName": {
+          "name": "eventName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "startTime": {
+          "name": "startTime",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endTime": {
+          "name": "endTime",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_seasonCode_season_seasonCode_fk": {
+          "name": "event_seasonCode_season_seasonCode_fk",
+          "tableFrom": "event",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eventCheckIn": {
+      "name": "eventCheckIn",
+      "schema": "",
+      "columns": {
+        "eventCheckInId": {
+          "name": "eventCheckInId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventId": {
+          "name": "eventId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checkInAuthor": {
+          "name": "checkInAuthor",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checkInNotes": {
+          "name": "checkInNotes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "eventCheckIn_seasonCode_season_seasonCode_fk": {
+          "name": "eventCheckIn_seasonCode_season_seasonCode_fk",
+          "tableFrom": "eventCheckIn",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        },
+        "eventCheckIn_eventId_event_eventId_fk": {
+          "name": "eventCheckIn_eventId_event_eventId_fk",
+          "tableFrom": "eventCheckIn",
+          "tableTo": "event",
+          "columnsFrom": [
+            "eventId"
+          ],
+          "columnsTo": [
+            "eventId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "eventCheckIn_userId_eventId_unique": {
+          "name": "eventCheckIn_userId_eventId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "userId",
+            "eventId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.form": {
+      "name": "form",
+      "schema": "",
+      "columns": {
+        "formId": {
+          "name": "formId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "openTime": {
+          "name": "openTime",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closeTime": {
+          "name": "closeTime",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "form_seasonCode_season_seasonCode_fk": {
+          "name": "form_seasonCode_season_seasonCode_fk",
+          "tableFrom": "form",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.formQuestion": {
+      "name": "formQuestion",
+      "schema": "",
+      "columns": {
+        "formQuestionId": {
+          "name": "formQuestionId",
+          "type": "varchar(80)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "formId": {
+          "name": "formId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "questionType": {
+          "name": "questionType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "ARRAY[]::text[]"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "formQuestion_formId_form_formId_fk": {
+          "name": "formQuestion_formId_form_formId_fk",
+          "tableFrom": "formQuestion",
+          "tableTo": "form",
+          "columnsFrom": [
+            "formId"
+          ],
+          "columnsTo": [
+            "formId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "formQuestion_seasonCode_season_seasonCode_fk": {
+          "name": "formQuestion_seasonCode_season_seasonCode_fk",
+          "tableFrom": "formQuestion",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.formResponse": {
+      "name": "formResponse",
+      "schema": "",
+      "columns": {
+        "formResponseId": {
+          "name": "formResponseId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "formId": {
+          "name": "formId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "responseJson": {
+          "name": "responseJson",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isSubmitted": {
+          "name": "isSubmitted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "formResponse_formId_form_formId_fk": {
+          "name": "formResponse_formId_form_formId_fk",
+          "tableFrom": "formResponse",
+          "tableTo": "form",
+          "columnsFrom": [
+            "formId"
+          ],
+          "columnsTo": [
+            "formId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "formResponse_seasonCode_season_seasonCode_fk": {
+          "name": "formResponse_seasonCode_season_seasonCode_fk",
+          "tableFrom": "formResponse",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "formResponse_seasonCode_userId_formId_unique": {
+          "name": "formResponse_seasonCode_userId_formId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "seasonCode",
+            "userId",
+            "formId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hacker": {
+      "name": "hacker",
+      "schema": "",
+      "columns": {
+        "hackerId": {
+          "name": "hackerId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "hackerStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nfcId": {
+          "name": "nfcId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "hacker_seasonCode_season_seasonCode_fk": {
+          "name": "hacker_seasonCode_season_seasonCode_fk",
+          "tableFrom": "hacker",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "hacker_nfcId_unique": {
+          "name": "hacker_nfcId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nfcId"
+          ]
+        },
+        "hacker_userId_seasonCode_unique": {
+          "name": "hacker_userId_seasonCode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hackerApplicationReview": {
+      "name": "hackerApplicationReview",
+      "schema": "",
+      "columns": {
+        "hackerApplicationReviewId": {
+          "name": "hackerApplicationReviewId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winnerId": {
+          "name": "winnerId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "loserId": {
+          "name": "loserId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winnerNewScore": {
+          "name": "winnerNewScore",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "loserNewScore": {
+          "name": "loserNewScore",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winnerOldScore": {
+          "name": "winnerOldScore",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "loserOldScore": {
+          "name": "loserOldScore",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewNotes": {
+          "name": "reviewNotes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewerId": {
+          "name": "reviewerId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "hackerApplicationReview_seasonCode_season_seasonCode_fk": {
+          "name": "hackerApplicationReview_seasonCode_season_seasonCode_fk",
+          "tableFrom": "hackerApplicationReview",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        },
+        "hackerApplicationReview_reviewerId_admin_userId_fk": {
+          "name": "hackerApplicationReview_reviewerId_admin_userId_fk",
+          "tableFrom": "hackerApplicationReview",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "reviewerId"
+          ],
+          "columnsTo": [
+            "userId"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mentor": {
+      "name": "mentor",
+      "schema": "",
+      "columns": {
+        "mentorId": {
+          "name": "mentorId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mentor_seasonCode_season_seasonCode_fk": {
+          "name": "mentor_seasonCode_season_seasonCode_fk",
+          "tableFrom": "mentor",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mentor_userId_seasonCode_unique": {
+          "name": "mentor_userId_seasonCode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.season": {
+      "name": "season",
+      "schema": "",
+      "columns": {
+        "seasonId": {
+          "name": "seasonId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hackerApplicationFormId": {
+          "name": "hackerApplicationFormId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rsvpFormId": {
+          "name": "rsvpFormId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "season_seasonCode_unique": {
+          "name": "season_seasonCode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "seasonCode"
+          ]
+        },
+        "season_hackerApplicationFormId_unique": {
+          "name": "season_hackerApplicationFormId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "hackerApplicationFormId"
+          ]
+        },
+        "season_rsvpFormId_unique": {
+          "name": "season_rsvpFormId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "rsvpFormId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sponsor": {
+      "name": "sponsor",
+      "schema": "",
+      "columns": {
+        "sponsorId": {
+          "name": "sponsorId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "org": {
+          "name": "org",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sponsor_seasonCode_season_seasonCode_fk": {
+          "name": "sponsor_seasonCode_season_seasonCode_fk",
+          "tableFrom": "sponsor",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sponsor_userId_seasonCode_unique": {
+          "name": "sponsor_userId_seasonCode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.volunteer": {
+      "name": "volunteer",
+      "schema": "",
+      "columns": {
+        "volunteerId": {
+          "name": "volunteerId",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seasonCode": {
+          "name": "seasonCode",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "volunteer_seasonCode_season_seasonCode_fk": {
+          "name": "volunteer_seasonCode_season_seasonCode_fk",
+          "tableFrom": "volunteer",
+          "tableTo": "season",
+          "columnsFrom": [
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "volunteer_userId_seasonCode_unique": {
+          "name": "volunteer_userId_seasonCode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.hackerStatus": {
+      "name": "hackerStatus",
+      "schema": "public",
+      "values": [
+        "no apply",
+        "applied",
+        "accepted",
+        "rejected",
+        "rsvped",
+        "checked-in"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
