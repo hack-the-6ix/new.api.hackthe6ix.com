@@ -12,6 +12,7 @@ import { db } from "@/db";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { ApiError } from "@/lib/errors";
 import { isAdmin } from "@/lib/auth";
+import { Context } from "hono";
 
 // Suppress console.error for cleaner test output
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -55,6 +56,18 @@ vi.mock("@/db/utils/dbErrorUtils", () => ({
 
 vi.mock("@/lib/auth", () => ({
   isAdmin: vi.fn(),
+  requireRoles: vi.fn(() => {
+    return async (c: Context, next: () => Promise<void>) => await next();
+  }),
+  UserType: {
+    User: "user",
+    Public: "public",
+    Admin: "admin",
+    Hacker: "hacker",
+    Sponsor: "sponsor",
+    Mentor: "mentor",
+    Volunteer: "volunteer",
+  },
 }));
 
 describe("Form Responses Routes", () => {
