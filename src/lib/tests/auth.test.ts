@@ -1,4 +1,19 @@
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+
+// Mock env before any imports that might use it
+vi.mock("@/config/env", () => ({
+  default: {
+    NODE_ENV: "test",
+    DB_HOST: "localhost",
+    DB_USER: "test",
+    DB_PASSWORD: "test",
+    DB_NAME: "test",
+    DB_PORT: 5432,
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
+  },
+  dev: false,
+}));
+
 import { isAdmin, requireRoles, UserType } from "../auth";
 import { db } from "@/db";
 import { Context } from "hono";

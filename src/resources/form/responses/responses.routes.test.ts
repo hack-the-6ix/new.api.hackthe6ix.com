@@ -7,6 +7,21 @@ import {
   afterAll,
   type Mock,
 } from "vitest";
+
+// Mock env before any imports that might use it
+vi.mock("@/config/env", () => ({
+  default: {
+    NODE_ENV: "test",
+    DB_HOST: "localhost",
+    DB_USER: "test",
+    DB_PASSWORD: "test",
+    DB_NAME: "test",
+    DB_PORT: 5432,
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
+  },
+  dev: false,
+}));
+
 import app from "@/server";
 import { db } from "@/db";
 import { handleDbError } from "@/db/utils/dbErrorUtils";

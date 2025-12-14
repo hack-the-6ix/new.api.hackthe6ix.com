@@ -6,42 +6,6 @@ import { ApiError } from "./errors";
 import { createMiddleware } from "hono/factory";
 import { Context } from "hono";
 
-export const getUserIdFromRequest = async (c: Context) => {
-  const sessionToken = c.req.header("Authorization")?.replace("Bearer ", "");
-  if (!sessionToken) {
-    return undefined;
-  }
-
-  try {
-    const userId = sessionToken; // TODO: extract userId from sessionToken properly with cognito
-    return userId;
-  } catch {
-    // do nothing, treat request as unauthenticated
-    return undefined;
-  }
-};
-
-/**
- * Check if the current user is an admin
- * @param c - Hono context
- * @returns true if user is admin, false otherwise
- */
-export const isAdmin = async (c: Context): Promise<boolean> => {
-  // check if already cached in context, don't want to query DB multiple times per request
-  const isAdminCache = c.get("isAdmin");
-  if (typeof isAdminCache === "boolean") {
-    return isAdminCache;
-  }
-
-  const userId = c.get("userId");
-  // NOTE: isUserType handles undefined userId case
-  const res = await isUserType(userId, undefined, UserType.Admin);
-
-  // set cache in context for future calls in same request
-  c.set("isAdmin", res);
-  return res;
-};
-
 /**
  * All user roles in the system
  * NOTE: "user" is a default role for all authenticated users, "public" is for unauthenticated users
@@ -156,4 +120,40 @@ export const requireRoles = (...userTypes: UserType[]) => {
 
     await next();
   });
+};
+
+const getUserIdFromRequest = async (c: Context) => {
+  const sessionToken = c.req.header("Authorization")?.replace("Bearer ", "");
+  if (!sessionToken) {
+    return undefined;
+  }
+
+  try {
+    const userId = sessionToken; // TODO: extract userId from sessionToken properly with cognito
+    return userId;
+  } catch {
+    // do nothing, treat request as unauthenticated
+    return undefined;
+  }
+};
+
+/**
+ * Check if the current user is an admin
+ * @param c - Hono context
+ * @returns true if user is admin, false otherwise
+ */
+export const isAdmin = async (c: Context): Promise<boolean> => {
+  // check if already cached in context, don't want to query DB multiple times per request
+  const isAdminCache = c.get("isAdmin");
+  if (typeof isAdminCache === "boolean") {
+    return isAdminCache;
+  }
+
+  const userId = c.get("userId");
+  // NOTE: isUserType handles undefined userId case
+  const res = await isUserType(userId, undefined, UserType.Admin);
+
+  // set cache in context for future calls in same request
+  c.set("isAdmin", res);
+  return res;
 };

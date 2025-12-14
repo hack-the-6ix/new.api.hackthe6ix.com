@@ -1,6 +1,38 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Mock env before any imports that might use it
+vi.mock("@/config/env", () => ({
+  default: {
+    NODE_ENV: "test",
+    DB_HOST: "localhost",
+    DB_USER: "test",
+    DB_PASSWORD: "test",
+    DB_NAME: "test",
+    DB_PORT: 5432,
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
+  },
+  dev: false,
+}));
+
+vi.mock("@/db", () => ({
+  db: {},
+}));
+
+vi.mock("bun", () => ({
+  SQL: {},
+}));
+
+vi.mock("@/db/utils/dbErrorUtils", () => ({
+  handleDbError: vi.fn((error) => error),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  isAdmin: vi.fn(),
+}));
+
 import { ApiError, DBError, handleError, type ErrorDetail } from "../errors";
 import { Hono } from "hono";
+import { isAdmin } from "@/lib/auth";
 
 describe("ApiError", () => {
   describe("constructor", () => {
@@ -262,6 +294,8 @@ describe("handleError", () => {
 
   describe("handling ApiError", () => {
     it("should return admin JSON for ApiError (currently hardcoded as admin)", async () => {
+      vi.mocked(isAdmin).mockResolvedValue(true); // Mock admin user
+
       const errorDetail: ErrorDetail = {
         code: "NOT_FOUND",
         message: "Resource not found",
@@ -302,6 +336,8 @@ describe("handleError", () => {
 
   describe("handling DBError", () => {
     it("should return admin details for DBError (userType hardcoded as admin)", async () => {
+      vi.mocked(isAdmin).mockResolvedValue(true); // Mock admin user
+
       app.get("/test", () => {
         throw new DBError(500, {
           code: "UNIQUE_VIOLATION",
