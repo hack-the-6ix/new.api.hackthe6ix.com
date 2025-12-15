@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { eventCheckIn } from "@/db/schema";
 import { event } from "@/db/schema/event";
-import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { eq, sql } from "drizzle-orm";
 
 export const fetchEvents = async (seasonCode: string) => {
@@ -12,7 +12,7 @@ export const fetchEvents = async (seasonCode: string) => {
       .where(eq(event.seasonCode, seasonCode));
     return result;
   } catch (error: unknown) {
-    const dbError = getDbErrorMessage(error);
+    const dbError = handleDbError(error);
     throw new Error(dbError.message);
   }
 };
@@ -37,7 +37,7 @@ export const createEvent = async (
 
     return result.length > 0 ? result[0] : null;
   } catch (error: unknown) {
-    const dbError = getDbErrorMessage(error);
+    const dbError = handleDbError(error);
     throw new Error(dbError.message);
   }
 };
@@ -71,7 +71,7 @@ export const checkInUser = async (
 
     return result.length > 0 ? result[0] : null;
   } catch (error: unknown) {
-    const dbError = getDbErrorMessage(error);
+    const dbError = handleDbError(error);
     throw new Error(dbError.message);
   }
 };
