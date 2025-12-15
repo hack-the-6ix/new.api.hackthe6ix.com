@@ -4,12 +4,13 @@ import { season } from "./season";
 
 export const form = pgTable("form", {
   formId: uuid("formId")
-    .primaryKey()
-    .default(sql`uuidv7()`),
+    .default(sql`uuidv7()`)
+    .primaryKey(),
   seasonCode: char("seasonCode", { length: 3 }).references(
     () => season.seasonCode,
-    { onUpdate: "cascade" },
+    { onUpdate: "cascade" }
   ),
+  formName: text("formName"),
   openTime: timestamp("openTime"),
   closeTime: timestamp("closeTime"),
   tags: text("tags")
