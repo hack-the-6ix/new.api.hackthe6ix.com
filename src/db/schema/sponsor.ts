@@ -22,5 +22,5 @@ export const sponsor = pgTable(
   (t) => [
     primaryKey({ columns: [t.sponsorId, t.seasonCode] }),
     unique().on(t.userId, t.seasonCode),
-  ]
+  ],
 );

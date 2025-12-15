@@ -14,5 +14,5 @@ export const mentor = pgTable(
   (t) => [
     primaryKey({ columns: [t.mentorId, t.seasonCode] }),
     unique().on(t.userId, t.seasonCode),
-  ]
+  ],
 );

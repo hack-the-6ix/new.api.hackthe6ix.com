@@ -30,5 +30,5 @@ export const event = pgTable(
     primaryKey({
       columns: [t.seasonCode, t.eventId],
     }),
-  ]
+  ],
 );

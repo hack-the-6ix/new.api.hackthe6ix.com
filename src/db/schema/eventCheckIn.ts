@@ -35,5 +35,5 @@ export const eventCheckIn = pgTable(
       columns: [t.seasonCode, t.eventId],
       foreignColumns: [event.seasonCode, event.eventId], // event(seasonCode, eventId)
     }).onDelete("cascade"),
-  ]
+  ],
 );

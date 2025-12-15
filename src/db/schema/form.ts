@@ -8,7 +8,7 @@ export const form = pgTable("form", {
     .primaryKey(),
   seasonCode: char("seasonCode", { length: 3 }).references(
     () => season.seasonCode,
-    { onUpdate: "cascade" }
+    { onUpdate: "cascade" },
   ),
   formName: text("formName"),
   openTime: timestamp("openTime"),

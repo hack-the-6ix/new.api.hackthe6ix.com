@@ -23,8 +23,7 @@ export const hackerStatusEnum = pgEnum("hackerStatus", [
 export const hacker = pgTable(
   "hacker",
   {
-    hackerId: uuid("hackerId")
-      .default(sql`uuidv7()`),
+    hackerId: uuid("hackerId").default(sql`uuidv7()`),
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 })
       .notNull()
@@ -35,6 +34,6 @@ export const hacker = pgTable(
   },
   (t) => [
     unique().on(t.userId, t.seasonCode),
-    primaryKey({columns: [t.hackerId, t.seasonCode]}),
-  ]
+    primaryKey({ columns: [t.hackerId, t.seasonCode] }),
+  ],
 );
