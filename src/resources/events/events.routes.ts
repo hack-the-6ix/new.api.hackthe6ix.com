@@ -11,7 +11,7 @@ const eventBodySchema = z.object({
 
 const checkInBodySchema = z.object({
   userId: z.string().uuid("Invalid userId format"),
-  checkInAuthor: z.string().uuid("Invalid checkInAuthor format"), // Ensure checkInAuthor is a valid UUID
+  checkInAuthor: z.string().uuid("Invalid checkInAuthor format"),
 });
 
 const eventsRoute = new Hono();
@@ -33,20 +33,18 @@ eventsRoute.get("/seasons/:seasonCode/events", async (c) => {
 
 // create new event
 eventsRoute.post(
-  "/seasons/:seasonCode/events/:eventId",
+  "/seasons/:seasonCode/events",
   validator("json", eventBodySchema),
   async (c) => {
     const seasonCode = c.req.param("seasonCode");
-    const eventId = c.req.param("eventId");
-    const body = await c.req.json();
+    const body = c.req.valid("json");
 
     try {
       const result = await createEvent(
         seasonCode,
-        eventId,
-        body.data.eventName,
-        body.data.startTime,
-        body.data.endTime,
+        body.eventName,
+        body.startTime,
+        body.endTime,
       );
 
       return result
@@ -60,6 +58,7 @@ eventsRoute.post(
   },
 );
 
+// check in user to event
 eventsRoute.post(
   "/seasons/:seasonCode/events/:eventId/check-in",
   validator("json", checkInBodySchema),
@@ -72,9 +71,9 @@ eventsRoute.post(
       const result = await checkInUser(
         seasonCode,
         eventId,
-        body.data.userId,
-        body.data.checkInAuthor,
-        body.data.checkInNotes,
+        body.userId,
+        body.checkInAuthor,
+        body.checkInNotes,
       );
       return result
         ? c.json({ message: "User checked in successfully", data: result }, 200)
