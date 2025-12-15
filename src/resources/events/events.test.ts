@@ -5,7 +5,7 @@ import {
   checkInUser,
 } from "@/resources/events/events.service";
 import { db } from "@/db";
-import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { event } from "@/db/schema/event";
 import { eventCheckIn } from "@/db/schema/eventCheckIn";
 
@@ -25,7 +25,7 @@ vi.mock("@/db/schema/eventCheckIn", () => ({
 }));
 
 vi.mock("@/db/utils/dbErrorUtils", () => ({
-  getDbErrorMessage: vi.fn(),
+  handleDbError: vi.fn(),
 }));
 
 describe("fetchEvents", () => {
@@ -61,7 +61,7 @@ describe("fetchEvents", () => {
     whereMock.mockRejectedValue(error);
 
     // verify
-    (getDbErrorMessage as Mock).mockReturnValue({
+    (handleDbError as Mock).mockReturnValue({
       message: "DB_BAD",
     });
     await expect(fetchEvents("SPR")).rejects.toThrow("DB_BAD");
@@ -94,7 +94,6 @@ describe("createEvent", () => {
     // exercise
     const result = await createEvent(
       "SPR",
-      "123",
       "Hackathon",
       "2025-11-27T10:00:00Z",
       "2025-11-27T12:00:00Z",
@@ -112,7 +111,6 @@ describe("createEvent", () => {
     // exercise
     const result = await createEvent(
       "SPR",
-      "123",
       "Hackathon",
       "2025-11-27T10:00:00Z",
       "2025-11-27T12:00:00Z",
@@ -128,13 +126,12 @@ describe("createEvent", () => {
     returningMock.mockRejectedValue(error);
 
     // verify
-    (getDbErrorMessage as Mock).mockReturnValue({
+    (handleDbError as Mock).mockReturnValue({
       message: "DB_BAD",
     });
     await expect(
       createEvent(
         "SPR",
-        "123",
         "Hackathon",
         "2025-11-27T10:00:00Z",
         "2025-11-27T12:00:00Z",
@@ -184,7 +181,7 @@ describe("checkInUser", () => {
     returningMock.mockRejectedValue(error);
 
     // verify
-    (getDbErrorMessage as Mock).mockReturnValue({
+    (handleDbError as Mock).mockReturnValue({
       message: "DB_BAD",
     });
     await expect(
