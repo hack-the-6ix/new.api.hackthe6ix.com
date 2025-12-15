@@ -19,7 +19,6 @@ export const fetchEvents = async (seasonCode: string) => {
 
 export const createEvent = async (
   seasonCode: string,
-  eventId: string,
   eventName: string,
   startTime: string,
   endTime: string,
@@ -28,11 +27,10 @@ export const createEvent = async (
     const result = await db
       .insert(event)
       .values({
-        eventId,
         seasonCode,
         eventName,
-        startTime: startTime ? sql`$(startTime)` : null,
-        endTime: endTime ? sql`$(endTime)` : null,
+        startTime: startTime ? new Date(startTime) : null,
+        endTime: endTime ? new Date(endTime) : null,
       })
       .onConflictDoNothing()
       .returning();
