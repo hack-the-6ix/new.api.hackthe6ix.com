@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { isAdmin } from "@/lib/auth";
+import { isUserType, UserType } from "@/lib/auth";
 import { dev } from "@/config/env";
 
 /**
@@ -86,7 +86,7 @@ export class DBError extends ApiError {
 }
 
 export const handleError = async (error: unknown, c: Context) => {
-  const admin: boolean = dev || (await isAdmin(c));
+  const admin: boolean = dev || (await isUserType(c, UserType.Admin));
 
   if (error instanceof ApiError) {
     // only logging internal server errors to avoid cluttering logs, can be adjusted to include more error codes

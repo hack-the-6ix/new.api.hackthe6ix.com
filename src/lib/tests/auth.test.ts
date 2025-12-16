@@ -14,7 +14,7 @@ vi.mock("@/config/env", () => ({
   dev: false,
 }));
 
-import { isAdmin, requireRoles, UserType } from "../auth";
+import { isUserType, requireRoles, UserType } from "../auth";
 import { db } from "@/db";
 import { Context } from "hono";
 
@@ -60,7 +60,7 @@ describe("Auth Module", () => {
     vi.clearAllMocks();
   });
 
-  describe("isAdmin", () => {
+  describe("isUserType (Admin)", () => {
     it("should return true when user is an admin", async () => {
       const selectMock = vi.fn(() => ({
         from: vi.fn(() => ({
@@ -74,9 +74,13 @@ describe("Auth Module", () => {
           key === "userId" ? "admin-user-id" : undefined,
         ),
         set: vi.fn(),
+        req: {
+          param: vi.fn(() => undefined),
+          header: vi.fn(() => undefined),
+        },
       } as unknown as Context;
 
-      const result = await isAdmin(mockContext);
+      const result = await isUserType(mockContext, UserType.Admin);
 
       expect(result).toBe(true);
       expect(selectMock).toHaveBeenCalled();
@@ -95,9 +99,13 @@ describe("Auth Module", () => {
           key === "userId" ? "regular-user-id" : undefined,
         ),
         set: vi.fn(),
+        req: {
+          param: vi.fn(() => undefined),
+          header: vi.fn(() => undefined),
+        },
       } as unknown as Context;
 
-      const result = await isAdmin(mockContext);
+      const result = await isUserType(mockContext, UserType.Admin);
 
       expect(result).toBe(false);
     });
@@ -107,13 +115,15 @@ describe("Auth Module", () => {
       (db.select as Mock) = selectMock;
 
       const mockContext = {
-        get: vi.fn((key: string) =>
-          key === "isAdmin" ? true : "some-user-id",
-        ),
+        get: vi.fn((key: string) => {
+          if (key === UserType.Admin) return true;
+          if (key === "userId") return "some-user-id";
+          return undefined;
+        }),
         set: vi.fn(),
       } as unknown as Context;
 
-      const result = await isAdmin(mockContext);
+      const result = await isUserType(mockContext, UserType.Admin);
 
       expect(result).toBe(true);
       expect(selectMock).not.toHaveBeenCalled();

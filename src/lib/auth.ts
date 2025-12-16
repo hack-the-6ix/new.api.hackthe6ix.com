@@ -33,7 +33,7 @@ const userTables = {
  * @param userType - user type to check against
  * @returns true if userId belongs to userType, false otherwise
  */
-const isUserType = async (
+const queryUserType = async (
   userId: string | undefined,
   seasonCode: string | undefined,
   userType: UserType,
@@ -86,24 +86,13 @@ export const requireRoles = (...userTypes: UserType[]) => {
       return;
     }
 
-    const userId = c.get("userId") || (await getUserIdFromRequest(c));
-
-    const seasonCode = c.req.param("seasonCode");
+    if (!c.get("userId")) {
+      c.set("userId", await getUserId(c));
+    }
 
     // check each role in parallel
     const roleChecks = await Promise.all(
-      userTypes.map(async (type) => {
-        // check if result is already cached in context
-        const isCached = c.get(type);
-        if (typeof isCached === "boolean") {
-          return isCached;
-        }
-
-        return isUserType(userId, seasonCode, type).then((res) => {
-          c.set(type, res); // cache result in context
-          return res;
-        });
-      }),
+      userTypes.map(async (type) => isUserType(c, type)),
     );
 
     // check if any role check passed
@@ -122,7 +111,12 @@ export const requireRoles = (...userTypes: UserType[]) => {
   });
 };
 
-const getUserIdFromRequest = async (c: Context) => {
+// Mocking this function for now
+export const getUserId = async (c: Context) => {
+  if (c.get("userId")) {
+    return c.get("userId");
+  }
+
   const sessionToken = c.req.header("Authorization")?.replace("Bearer ", "");
   if (!sessionToken) {
     return undefined;
@@ -130,6 +124,7 @@ const getUserIdFromRequest = async (c: Context) => {
 
   try {
     const userId = sessionToken; // TODO: extract userId from sessionToken properly with cognito
+    c.set("userId", userId); // cache in context for future use
     return userId;
   } catch {
     // do nothing, treat request as unauthenticated
@@ -138,22 +133,29 @@ const getUserIdFromRequest = async (c: Context) => {
 };
 
 /**
- * Check if the current user is an admin
+ * Check if the request is from a certain user type.
  * @param c - Hono context
+ * @param userType - UserType to check (e.g., UserType.Admin, UserType.Hacker, etc.)
  * @returns true if user is admin, false otherwise
  */
-export const isAdmin = async (c: Context): Promise<boolean> => {
+export const isUserType = async (
+  c: Context,
+  userType: UserType,
+): Promise<boolean> => {
+  console.log("isUserType check for", userType);
   // check if already cached in context, don't want to query DB multiple times per request
-  const isAdminCache = c.get("isAdmin");
-  if (typeof isAdminCache === "boolean") {
-    return isAdminCache;
+  const cachedValue = c.get(userType);
+  if (typeof cachedValue === "boolean") {
+    return cachedValue;
   }
 
   const userId = c.get("userId");
-  // NOTE: isUserType handles undefined userId case
-  const res = await isUserType(userId, undefined, UserType.Admin);
+  const seasonCode = c.req.param("seasonCode");
+
+  // queryUserType handles undefined userId and seasonCode cases properly
+  const res = await queryUserType(userId, seasonCode, userType);
 
   // set cache in context for future calls in same request
-  c.set("isAdmin", res);
+  c.set(userType, res);
   return res;
 };

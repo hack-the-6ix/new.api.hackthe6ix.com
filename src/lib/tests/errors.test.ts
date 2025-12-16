@@ -27,12 +27,21 @@ vi.mock("@/db/utils/dbErrorUtils", () => ({
 }));
 
 vi.mock("@/lib/auth", () => ({
-  isAdmin: vi.fn(),
+  isUserType: vi.fn(),
+  UserType: {
+    User: "user",
+    Public: "public",
+    Admin: "admin",
+    Hacker: "hacker",
+    Sponsor: "sponsor",
+    Mentor: "mentor",
+    Volunteer: "volunteer",
+  },
 }));
 
 import { ApiError, DBError, handleError, type ErrorDetail } from "../errors";
 import { Hono } from "hono";
-import { isAdmin } from "@/lib/auth";
+import { isUserType } from "@/lib/auth";
 
 describe("ApiError", () => {
   describe("constructor", () => {
@@ -294,7 +303,7 @@ describe("handleError", () => {
 
   describe("handling ApiError", () => {
     it("should return admin JSON for ApiError (currently hardcoded as admin)", async () => {
-      vi.mocked(isAdmin).mockResolvedValue(true); // Mock admin user
+      vi.mocked(isUserType).mockResolvedValue(true); // Mock admin user
 
       const errorDetail: ErrorDetail = {
         code: "NOT_FOUND",
@@ -336,7 +345,7 @@ describe("handleError", () => {
 
   describe("handling DBError", () => {
     it("should return admin details for DBError (userType hardcoded as admin)", async () => {
-      vi.mocked(isAdmin).mockResolvedValue(true); // Mock admin user
+      vi.mocked(isUserType).mockResolvedValue(true); // Mock admin user
 
       app.get("/test", () => {
         throw new DBError(500, {

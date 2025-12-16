@@ -26,7 +26,7 @@ import app from "@/server";
 import { db } from "@/db";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { ApiError } from "@/lib/errors";
-import { isAdmin } from "@/lib/auth";
+import { isUserType, UserType } from "@/lib/auth";
 import { Context } from "hono";
 
 // Suppress console.error for cleaner test output
@@ -70,7 +70,7 @@ vi.mock("@/db/utils/dbErrorUtils", () => ({
 }));
 
 vi.mock("@/lib/auth", () => ({
-  isAdmin: vi.fn(),
+  isUserType: vi.fn(),
   requireRoles: vi.fn(() => {
     return async (c: Context, next: () => Promise<void>) => await next();
   }),
@@ -472,7 +472,7 @@ describe("Form Responses Routes", () => {
       }));
       (db.insert as Mock) = insertMock;
       (db.select as Mock) = selectMock;
-      vi.mocked(isAdmin).mockResolvedValue(true);
+      vi.mocked(isUserType).mockResolvedValue(true);
 
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
@@ -504,7 +504,7 @@ describe("Form Responses Routes", () => {
       }));
       (db.insert as Mock) = insertMock;
       (db.select as Mock) = selectMock;
-      vi.mocked(isAdmin).mockResolvedValue(true);
+      vi.mocked(isUserType).mockResolvedValue(true);
 
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
@@ -535,7 +535,7 @@ describe("Form Responses Routes", () => {
       }));
       (db.insert as Mock) = insertMock;
       (db.select as Mock) = selectMock;
-      vi.mocked(isAdmin).mockResolvedValue(false);
+      vi.mocked(isUserType).mockResolvedValue(false);
 
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
@@ -574,7 +574,7 @@ describe("Form Responses Routes", () => {
       }));
       (db.insert as Mock) = insertMock;
       (db.select as Mock) = selectMock;
-      vi.mocked(isAdmin).mockResolvedValue(false);
+      vi.mocked(isUserType).mockResolvedValue(false);
 
       const res = await app.request(
         "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
@@ -629,6 +629,76 @@ describe("Form Responses Routes", () => {
       );
 
       expect(res.status).toBe(500);
+    });
+
+    it("should only call isUserType once when targetUserId is provided", async () => {
+      const insertMock = vi.fn(() => ({
+        values: vi.fn(() => ({
+          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+        })),
+      }));
+      const selectMock = vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([{ userId: "admin-user" }]),
+        })),
+      }));
+      (db.insert as Mock) = insertMock;
+      (db.select as Mock) = selectMock;
+      vi.mocked(isUserType).mockResolvedValue(true);
+      vi.mocked(isUserType).mockClear();
+
+      await app.request(
+        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionToken: "admin-user",
+            targetUserId: "01937000-0000-7000-8000-000000000001",
+            responseJson: { answer1: "test" },
+            isSubmitted: false,
+          }),
+        },
+      );
+
+      // Ensure the route checks admin status when targetUserId is provided
+      expect(vi.mocked(isUserType)).toHaveBeenCalled();
+      expect(vi.mocked(isUserType)).toHaveBeenCalledWith(
+        expect.any(Object),
+        UserType.Admin,
+      );
+    });
+
+    it("should not call isUserType when targetUserId is not provided", async () => {
+      const insertMock = vi.fn(() => ({
+        values: vi.fn(() => ({
+          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+        })),
+      }));
+      const selectMock = vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([]),
+        })),
+      }));
+      (db.insert as Mock) = insertMock;
+      (db.select as Mock) = selectMock;
+      vi.clearAllMocks();
+
+      await app.request(
+        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionToken: "regular-user",
+            responseJson: { answer1: "test" },
+            isSubmitted: false,
+          }),
+        },
+      );
+
+      // isUserType should not be called since targetUserId is not provided
+      expect(vi.mocked(isUserType)).not.toHaveBeenCalled();
     });
   });
 });

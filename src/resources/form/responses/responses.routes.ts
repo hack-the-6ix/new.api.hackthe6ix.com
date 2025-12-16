@@ -7,7 +7,7 @@ import {
   upsertFormResponse,
   getRandomFormResponse,
 } from "./responses.service";
-import { isAdmin } from "@/lib/auth";
+import { isUserType } from "@/lib/auth";
 import { ApiError } from "@/lib/errors";
 import { genericErrorResponse } from "@/config/openapi";
 import { requireRoles, UserType } from "@/lib/auth";
@@ -150,7 +150,7 @@ formResponsesRoute.post(
 
     // if targetUserId is supplied and request is made by admin, allow upsert for specified userId, else use userId from sessionToken
     const userId =
-      body.targetUserId && (await isAdmin(c))
+      body.targetUserId && (await isUserType(c, UserType.Admin))
         ? body.targetUserId
         : userIdFromRequest;
 
