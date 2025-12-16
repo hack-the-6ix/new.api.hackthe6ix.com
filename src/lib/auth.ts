@@ -28,7 +28,7 @@ const userTables = {
 };
 
 /**
- * Check if a userId belongs to a certain user type. Ideally not called directly, use requireRole middleware instead.
+ * Check if a userId belongs to a certain user type. Ideally not called directly, use requireRoles middleware instead.
  * @param userId - user ID to check
  * @param userType - user type to check against
  * @returns true if userId belongs to userType, false otherwise
@@ -74,13 +74,13 @@ const queryUserType = async (
 
 /**
  * Middleware to require user has at least one of the specified roles on a route
- * Throws 403 Unauthorized if user doesn't have any of the required roles
+ * Throws 403 Forbidden if user doesn't have any of the required roles
  * @param userTypes - Array of allowed user types
  */
 export const requireRoles = (...userTypes: UserType[]) => {
   return createMiddleware(async (c, next) => {
     // get userId from context (set by validateSession middleware)
-    if (UserType.Public in userTypes) {
+    if (userTypes.includes(UserType.Public)) {
       // public access allowed, no need to check further
       await next();
       return;
@@ -101,7 +101,7 @@ export const requireRoles = (...userTypes: UserType[]) => {
     if (!hasAnyRole) {
       throw new ApiError(403, {
         code: "FORBIDDEN",
-        message: "You do not have authorization access",
+        message: "You are not authorized to access this resource",
         detail: `Required role(s): ${userTypes.join(", ")}`,
         suggestion: "Check your user type",
       });
@@ -136,13 +136,12 @@ export const getUserId = async (c: Context) => {
  * Check if the request is from a certain user type.
  * @param c - Hono context
  * @param userType - UserType to check (e.g., UserType.Admin, UserType.Hacker, etc.)
- * @returns true if user is admin, false otherwise
+ * @returns true if user has the specified userType, false otherwise
  */
 export const isUserType = async (
   c: Context,
   userType: UserType,
 ): Promise<boolean> => {
-  console.log("isUserType check for", userType);
   // check if already cached in context, don't want to query DB multiple times per request
   const cachedValue = c.get(userType);
   if (typeof cachedValue === "boolean") {
