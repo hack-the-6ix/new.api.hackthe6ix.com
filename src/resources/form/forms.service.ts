@@ -1,17 +1,25 @@
 import { db } from "@/db";
-import { form } from "@/db/schema/form";
-import { getDbErrorMessage } from "@/db/utils/dbErrorUtils";
+import { form, formQuestion } from "@/db/schema";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
+
+export interface CreateFormQuestionInput {
+  formQuestionId: string;
+  questionType: string;
+  tags?: string[];
+}
 
 export interface CreateFormInput {
   seasonCode: string;
   openTime?: Date | null;
   closeTime?: Date | null;
   tags?: string[];
+  questions?: CreateFormQuestionInput[];
 }
 
 export const createForm = async (input: CreateFormInput) => {
   try {
-    const result = await db
+    // Create the form first
+    const [createdForm] = await db
       .insert(form)
       .values({
         seasonCode: input.seasonCode,
@@ -20,9 +28,22 @@ export const createForm = async (input: CreateFormInput) => {
         tags: input.tags ?? [],
       })
       .returning();
-    return result[0];
+
+    // Create questions if provided
+    if (input.questions && input.questions.length > 0) {
+      await db.insert(formQuestion).values(
+        input.questions.map((question) => ({
+          formQuestionId: question.formQuestionId,
+          formId: createdForm.formId,
+          seasonCode: input.seasonCode,
+          questionType: question.questionType,
+          tags: question.tags ?? [],
+        })),
+      );
+    }
+
+    return createdForm;
   } catch (error: unknown) {
-    const dbError = getDbErrorMessage(error);
-    throw new Error(dbError.message);
+    throw handleDbError(error);
   }
 };
