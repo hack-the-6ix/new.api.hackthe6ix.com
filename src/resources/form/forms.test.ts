@@ -363,10 +363,11 @@ describe("forms.service", () => {
         },
       );
 
+      const NEW_Q_ID =
+        "new-q-id-0000-0000-0000-000000000000" as `${string}-${string}-${string}-${string}-${string}`;
+
       // mock crypto.randomUUID so test is deterministic
-      vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
-        "new-q-id-0000-0000-0000-000000000000" as `${string}-${string}-${string}-${string}-${string}`,
-      );
+      vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(NEW_Q_ID);
 
       const result = await cloneForm("S26", FORM_ID);
 
@@ -377,7 +378,7 @@ describe("forms.service", () => {
 
       expect(qValuesInsertMock).toHaveBeenCalledWith([
         {
-          formQuestionId: "new-q-id",
+          formQuestionId: NEW_Q_ID,
           formId: FORM_ID_2,
           seasonCode: "S26",
           questionType: "text",
