@@ -68,17 +68,15 @@ beforeEach(() => {
 describe("forms.service", () => {
   describe("createForm", () => {
     it("creates a form successfully without questions", async () => {
-      const returningMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formId: FORM_ID,
-            seasonCode: "S26",
-            openTime: null,
-            closeTime: null,
-            tags: ["registration"],
-          },
-        ]);
+      const returningMock = vi.fn().mockResolvedValue([
+        {
+          formId: FORM_ID,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: ["registration"],
+        },
+      ]);
 
       const valuesMock = vi.fn(() => ({ returning: returningMock }));
       (db.insert as Mock).mockReturnValue({ values: valuesMock });
@@ -106,17 +104,15 @@ describe("forms.service", () => {
     });
 
     it("creates a form with questions (inserts into formQuestion)", async () => {
-      const formReturningMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formId: FORM_ID,
-            seasonCode: "S26",
-            openTime: null,
-            closeTime: null,
-            tags: [],
-          },
-        ]);
+      const formReturningMock = vi.fn().mockResolvedValue([
+        {
+          formId: FORM_ID,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: [],
+        },
+      ]);
 
       const formValuesMock = vi.fn(() => ({ returning: formReturningMock }));
       const questionValuesMock = vi.fn().mockResolvedValue(undefined);
@@ -192,17 +188,15 @@ describe("forms.service", () => {
       (db.select as Mock).mockReturnValue({ from: existsFromMock });
 
       // update().set().where().returning()
-      const returningMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formId: FORM_ID,
-            seasonCode: "S26",
-            openTime: null,
-            closeTime: null,
-            tags: ["updated"],
-          },
-        ]);
+      const returningMock = vi.fn().mockResolvedValue([
+        {
+          formId: FORM_ID,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: ["updated"],
+        },
+      ]);
       const updateWhereMock = vi.fn(() => ({ returning: returningMock }));
       const setMock = vi.fn(() => ({ where: updateWhereMock }));
       (db.update as Mock).mockReturnValue({ set: setMock });
@@ -233,17 +227,15 @@ describe("forms.service", () => {
       (db.select as Mock).mockReturnValue({ from: existsFromMock });
 
       // update returning
-      const returningMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formId: FORM_ID,
-            seasonCode: "S26",
-            openTime: null,
-            closeTime: null,
-            tags: [],
-          },
-        ]);
+      const returningMock = vi.fn().mockResolvedValue([
+        {
+          formId: FORM_ID,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: [],
+        },
+      ]);
       const updateWhereMock = vi.fn(() => ({ returning: returningMock }));
       const setMock = vi.fn(() => ({ where: updateWhereMock }));
       (db.update as Mock).mockReturnValue({ set: setMock });
@@ -320,31 +312,27 @@ describe("forms.service", () => {
 
     it("clones form and clones questions (new formId)", async () => {
       // 1) select src form
-      const formWhereMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formId: FORM_ID,
-            seasonCode: "S26",
-            openTime: null,
-            closeTime: null,
-            tags: ["registration"],
-          },
-        ]);
+      const formWhereMock = vi.fn().mockResolvedValue([
+        {
+          formId: FORM_ID,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: ["registration"],
+        },
+      ]);
       const formFromMock = vi.fn(() => ({ where: formWhereMock }));
 
       // 2) select src questions
-      const qWhereMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formQuestionId: "qOld1",
-            formId: FORM_ID,
-            seasonCode: "S26",
-            questionType: "text",
-            tags: ["a"],
-          },
-        ]);
+      const qWhereMock = vi.fn().mockResolvedValue([
+        {
+          formQuestionId: "qOld1",
+          formId: FORM_ID,
+          seasonCode: "S26",
+          questionType: "text",
+          tags: ["a"],
+        },
+      ]);
       const qFromMock = vi.fn(() => ({ where: qWhereMock }));
 
       // db.select used twice; return different builders in order
@@ -353,17 +341,15 @@ describe("forms.service", () => {
         .mockReturnValueOnce({ from: qFromMock });
 
       // insert cloned form returning
-      const returningMock = vi
-        .fn()
-        .mockResolvedValue([
-          {
-            formId: FORM_ID_2,
-            seasonCode: "S26",
-            openTime: null,
-            closeTime: null,
-            tags: ["registration"],
-          },
-        ]);
+      const returningMock = vi.fn().mockResolvedValue([
+        {
+          formId: FORM_ID_2,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: ["registration"],
+        },
+      ]);
       const formValuesMock = vi.fn(() => ({ returning: returningMock }));
 
       // insert cloned questions
@@ -378,11 +364,14 @@ describe("forms.service", () => {
       );
 
       // mock crypto.randomUUID so test is deterministic
-      vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue("new-q-id");
+      vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
+        "new-q-id-0000-0000-0000-000000000000" as `${string}-${string}-${string}-${string}-${string}`,
+      );
 
       const result = await cloneForm("S26", FORM_ID);
 
       expect(result.formId).toBe(FORM_ID_2);
+
       expect(db.insert).toHaveBeenCalledWith(form);
       expect(db.insert).toHaveBeenCalledWith(formQuestion);
 
