@@ -1,18 +1,16 @@
 import { pgTable, char, uuid, unique, primaryKey } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { season } from "./season";
 
 export const mentor = pgTable(
   "mentor",
   {
-    mentorId: uuid("mentorId").default(sql`uuidv7()`),
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 })
       .notNull()
       .references(() => season.seasonCode, { onUpdate: "cascade" }),
   },
   (t) => [
-    primaryKey({ columns: [t.mentorId, t.seasonCode] }),
+    primaryKey({ columns: [t.userId, t.seasonCode] }),
     unique().on(t.userId, t.seasonCode),
   ],
 );

@@ -6,13 +6,11 @@ import {
   text,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { season } from "./season";
 
 export const sponsor = pgTable(
   "sponsor",
   {
-    sponsorId: uuid("sponsorId").default(sql`uuidv7()`),
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 })
       .notNull()
@@ -20,7 +18,7 @@ export const sponsor = pgTable(
     org: text("org"),
   },
   (t) => [
-    primaryKey({ columns: [t.sponsorId, t.seasonCode] }),
+    primaryKey({ columns: [t.userId, t.seasonCode] }),
     unique().on(t.userId, t.seasonCode),
-  ],
+  ]
 );

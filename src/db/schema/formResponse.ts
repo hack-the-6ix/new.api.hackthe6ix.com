@@ -7,6 +7,7 @@ import {
   timestamp,
   unique,
   primaryKey,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { season } from "./season";
@@ -16,14 +17,13 @@ export const formResponse = pgTable(
   "formResponse",
   {
     formResponseId: uuid("formResponseId").default(sql`uuidv7()`),
-    formId: uuid("formId").references(() => form.formId, {
-      onDelete: "cascade",
-      onUpdate: "cascade",
-    }),
+    formId: uuid("formId")
+      .notNull()
+      .default(sql`uuidv7()`),
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 }).references(
       () => season.seasonCode,
-      { onUpdate: "cascade" },
+      { onUpdate: "cascade" }
     ),
     responseJson: jsonb("responseJson").notNull(),
     isSubmitted: boolean("isSubmitted").default(false),
@@ -32,5 +32,9 @@ export const formResponse = pgTable(
   (t) => [
     primaryKey({ columns: [t.formResponseId, t.seasonCode] }),
     unique().on(t.seasonCode, t.userId, t.formId),
-  ],
+    foreignKey({
+      columns: [t.seasonCode, t.formId],
+      foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, eventId)
+    }).onDelete("cascade"),
+  ]
 );
