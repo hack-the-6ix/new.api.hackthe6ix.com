@@ -33,5 +33,5 @@ export const hacker = pgTable(
   (t) => [
     unique().on(t.userId, t.seasonCode),
     primaryKey({ columns: [t.userId, t.seasonCode] }),
-  ]
+  ],
 );

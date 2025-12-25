@@ -17,13 +17,13 @@ export const hackerApplicationReview = pgTable(
   "hackerApplicationReview",
   {
     hackerApplicationReviewId: uuid("hackerApplicationReviewId").default(
-      sql`uuidv7()`
+      sql`uuidv7()`,
     ),
     seasonCode: char("seasonCode", { length: 3 }).references(
       () => season.seasonCode,
       {
         onUpdate: "cascade",
-      }
+      },
     ),
     winnerId: uuid("winnerId"),
     loserId: uuid("loserId"),
@@ -45,5 +45,5 @@ export const hackerApplicationReview = pgTable(
       columns: [t.loserId, t.seasonCode],
       foreignColumns: [hacker.userId, hacker.seasonCode],
     }),
-  ]
+  ],
 );

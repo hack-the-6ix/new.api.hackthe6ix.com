@@ -20,7 +20,7 @@ export const formQuestion = pgTable(
       .default(sql`uuidv7()`),
     seasonCode: char("seasonCode", { length: 3 }).references(
       () => season.seasonCode,
-      { onUpdate: "cascade" }
+      { onUpdate: "cascade" },
     ),
     questionType: text("questionType"),
     tags: text("tags")
@@ -33,5 +33,5 @@ export const formQuestion = pgTable(
       columns: [t.seasonCode, t.formId],
       foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, eventId)
     }).onDelete("cascade"),
-  ]
+  ],
 );

@@ -33,5 +33,5 @@ export const form = pgTable(
     primaryKey({
       columns: [t.seasonCode, t.formId],
     }),
-  ]
+  ],
 );
