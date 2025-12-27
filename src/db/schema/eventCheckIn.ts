@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { season } from "./season";
 import { event } from "./event";
+import { hacker } from "./hacker";
 
 export const eventCheckIn = pgTable(
   "eventCheckIn",
@@ -35,5 +36,9 @@ export const eventCheckIn = pgTable(
       columns: [t.seasonCode, t.eventId],
       foreignColumns: [event.seasonCode, event.eventId], // event(seasonCode, eventId)
     }).onDelete("cascade"),
-  ],
+    foreignKey({
+      columns: [t.seasonCode, t.userId],
+      foreignColumns: [hacker.seasonCode, hacker.userId], // event(seasonCode, eventId)
+    }).onDelete("cascade"),
+  ]
 );

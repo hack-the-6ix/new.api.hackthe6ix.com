@@ -51,7 +51,7 @@ CREATE TABLE "formResponse" (
 	"responseJson" jsonb NOT NULL,
 	"isSubmitted" boolean DEFAULT false,
 	"updatedAt" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "formResponse_formResponseId_seasonCode_pk" PRIMARY KEY("formResponseId","seasonCode"),
+	CONSTRAINT "formResponse_seasonCode_userId_formId_pk" PRIMARY KEY("seasonCode","userId","formId"),
 	CONSTRAINT "formResponse_seasonCode_userId_formId_unique" UNIQUE("seasonCode","userId","formId")
 );
 --> statement-breakpoint
@@ -116,6 +116,7 @@ CREATE TABLE "volunteer" (
 ALTER TABLE "event" ADD CONSTRAINT "event_seasonCode_season_seasonCode_fk" FOREIGN KEY ("seasonCode") REFERENCES "public"."season"("seasonCode") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "eventCheckIn" ADD CONSTRAINT "eventCheckIn_seasonCode_season_seasonCode_fk" FOREIGN KEY ("seasonCode") REFERENCES "public"."season"("seasonCode") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "eventCheckIn" ADD CONSTRAINT "eventCheckIn_seasonCode_eventId_event_seasonCode_eventId_fk" FOREIGN KEY ("seasonCode","eventId") REFERENCES "public"."event"("seasonCode","eventId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "eventCheckIn" ADD CONSTRAINT "eventCheckIn_seasonCode_userId_hacker_seasonCode_userId_fk" FOREIGN KEY ("seasonCode","userId") REFERENCES "public"."hacker"("seasonCode","userId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "form" ADD CONSTRAINT "form_seasonCode_season_seasonCode_fk" FOREIGN KEY ("seasonCode") REFERENCES "public"."season"("seasonCode") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "formQuestion" ADD CONSTRAINT "formQuestion_seasonCode_season_seasonCode_fk" FOREIGN KEY ("seasonCode") REFERENCES "public"."season"("seasonCode") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "formQuestion" ADD CONSTRAINT "formQuestion_seasonCode_formId_form_seasonCode_formId_fk" FOREIGN KEY ("seasonCode","formId") REFERENCES "public"."form"("seasonCode","formId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

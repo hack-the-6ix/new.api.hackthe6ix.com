@@ -1,5 +1,5 @@
 {
-  "id": "9ab2e7c9-9a90-4334-859a-40635731f0a2",
+  "id": "9f62380d-599f-4941-b64d-38dae49e2f63",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -164,6 +164,21 @@
           "columnsTo": [
             "seasonCode",
             "eventId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "eventCheckIn_seasonCode_userId_hacker_seasonCode_userId_fk": {
+          "name": "eventCheckIn_seasonCode_userId_hacker_seasonCode_userId_fk",
+          "tableFrom": "eventCheckIn",
+          "tableTo": "hacker",
+          "columnsFrom": [
+            "seasonCode",
+            "userId"
+          ],
+          "columnsTo": [
+            "seasonCode",
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -430,11 +445,12 @@
         }
       },
       "compositePrimaryKeys": {
-        "formResponse_formResponseId_seasonCode_pk": {
-          "name": "formResponse_formResponseId_seasonCode_pk",
+        "formResponse_seasonCode_userId_formId_pk": {
+          "name": "formResponse_seasonCode_userId_formId_pk",
           "columns": [
-            "formResponseId",
-            "seasonCode"
+            "seasonCode",
+            "userId",
+            "formId"
           ]
         }
       },

@@ -23,18 +23,18 @@ export const formResponse = pgTable(
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 }).references(
       () => season.seasonCode,
-      { onUpdate: "cascade" },
+      { onUpdate: "cascade" }
     ),
     responseJson: jsonb("responseJson").notNull(),
     isSubmitted: boolean("isSubmitted").default(false),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   },
   (t) => [
-    primaryKey({ columns: [t.formResponseId, t.seasonCode] }),
+    primaryKey({ columns: [t.seasonCode, t.userId, t.formId] }),
     unique().on(t.seasonCode, t.userId, t.formId),
     foreignKey({
       columns: [t.seasonCode, t.formId],
-      foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, eventId)
+      foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, formId)
     }).onDelete("cascade"),
-  ],
+  ]
 );
