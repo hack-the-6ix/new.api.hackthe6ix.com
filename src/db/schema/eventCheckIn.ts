@@ -3,32 +3,42 @@ import {
   uuid,
   char,
   timestamp,
-  unique,
   text,
+  primaryKey,
+  foreignKey,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { season } from "./season";
 import { event } from "./event";
+import { hacker } from "./hacker";
 
 export const eventCheckIn = pgTable(
   "eventCheckIn",
   {
-    eventCheckInId: uuid("eventCheckInId")
-      .primaryKey()
-      .default(sql`uuidv7()`),
-    seasonCode: char("seasonCode", { length: 3 }).references(
-      () => season.seasonCode,
-      { onUpdate: "cascade" },
-    ),
-    userId: uuid("userId").notNull(),
-    eventId: uuid("eventId")
+    seasonCode: char("seasonCode", { length: 3 })
       .notNull()
-      .references(() => event.eventId, { onDelete: "cascade" }),
+      .references(() => season.seasonCode, {
+        onUpdate: "cascade",
+      }),
+
+    eventId: uuid("eventId").notNull(),
+
+    userId: uuid("userId").notNull(),
+
     checkInAuthor: uuid("checkInAuthor").notNull(),
     checkInNotes: text("checkInNotes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (t) => [
-    unique().on(t.userId, t.eventId), // A user can only check in once per event
+    primaryKey({
+      columns: [t.seasonCode, t.eventId, t.userId],
+    }),
+    foreignKey({
+      columns: [t.seasonCode, t.eventId],
+      foreignColumns: [event.seasonCode, event.eventId], // event(seasonCode, eventId)
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.seasonCode, t.userId],
+      foreignColumns: [hacker.seasonCode, hacker.userId], // event(seasonCode, eventId)
+    }).onDelete("cascade"),
   ],
 );
