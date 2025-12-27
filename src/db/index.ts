@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/bun-sql";
 import { SQL } from "bun";
 import * as schema from "@/db/schema";
-import env from "@/config/env";
+import env, { dev } from "@/config/env";
 
 export const client = new SQL(env.DATABASE_URL, {
   adapter: "postgres",
@@ -11,7 +11,7 @@ export const client = new SQL(env.DATABASE_URL, {
 export const db = drizzle(client, {
   schema,
   casing: "camelCase",
-  logger: true,
+  logger: dev,
 });
 
 export type db = typeof db;

@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "new.api.hackthe6ix.com",
@@ -12,7 +13,7 @@
         "hono": "^4.10.5",
         "hono-openapi": "^1.1.1",
         "path": "^0.12.7",
-        "zod": "^4.1.12"
+        "zod": "^4.1.12",
       },
       "devDependencies": {
         "@eslint/js": "^9.39.1",

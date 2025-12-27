@@ -7,9 +7,10 @@ import {
   upsertFormResponse,
   getRandomFormResponse,
 } from "./responses.service";
-import { isAdmin } from "@/lib/auth";
+import { isUserType } from "@/lib/auth";
 import { ApiError } from "@/lib/errors";
 import { genericErrorResponse } from "@/config/openapi";
+import { requireRoles, UserType, getUserId } from "@/lib/auth";
 
 const formResponsesRoute = new Hono();
 
@@ -51,6 +52,7 @@ formResponsesRoute.get(
     }),
   ),
   validator("param", z.object({ seasonCode: z.string().length(3) })),
+  requireRoles(UserType.User),
   async (c) => {
     const seasonCode = c.req.valid("param").seasonCode;
     const query = c.req.valid("query");
@@ -91,6 +93,7 @@ formResponsesRoute.post(
     "param",
     z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
+  requireRoles(UserType.Admin),
   async (c) => {
     const seasonCode = c.req.valid("param").seasonCode;
     const formId = c.req.valid("param").formId;
@@ -138,17 +141,16 @@ formResponsesRoute.post(
       isSubmitted: z.boolean(),
     }),
   ),
+  requireRoles(UserType.User),
   async (c) => {
     const params = c.req.valid("param");
     const body = c.req.valid("json");
 
-    const userIdFromRequest = body.sessionToken; // TODO: would instead be extracted from sessionToken in actual implementation (or have middleware do it)
-
     // if targetUserId is supplied and request is made by admin, allow upsert for specified userId, else use userId from sessionToken
     const userId =
-      body.targetUserId && (await isAdmin(userIdFromRequest))
+      body.targetUserId && (await isUserType(c, UserType.Admin))
         ? body.targetUserId
-        : userIdFromRequest;
+        : await getUserId(c);
 
     validateFormResponseJson(params.formId, body);
 
