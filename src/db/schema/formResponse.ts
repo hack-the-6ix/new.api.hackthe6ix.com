@@ -23,7 +23,7 @@ export const formResponse = pgTable(
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 }).references(
       () => season.seasonCode,
-      { onUpdate: "cascade" }
+      { onUpdate: "cascade" },
     ),
     responseJson: jsonb("responseJson").notNull(),
     isSubmitted: boolean("isSubmitted").default(false),
@@ -36,5 +36,5 @@ export const formResponse = pgTable(
       columns: [t.seasonCode, t.formId],
       foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, formId)
     }).onDelete("cascade"),
-  ]
+  ],
 );
