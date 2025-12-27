@@ -71,6 +71,7 @@ vi.mock("@/db/utils/dbErrorUtils", () => ({
 
 vi.mock("@/lib/auth", () => ({
   isUserType: vi.fn(),
+  getUserId: vi.fn().mockResolvedValue("user-id"),
   requireRoles: vi.fn(() => {
     return async (c: Context, next: () => Promise<void>) => await next();
   }),
@@ -552,11 +553,11 @@ describe("Form Responses Routes", () => {
       );
 
       expect(res.status).toBe(201);
-      // Verify the insert was called with regular-user, not targetUserId
+      // Verify the insert was called with user-id (from getUserId mock), not targetUserId
       const valuesMock = insertMock.mock.results[0].value;
       expect(valuesMock.values).toHaveBeenCalledWith(
         expect.objectContaining({
-          userId: "regular-user",
+          userId: "user-id",
         }),
       );
     });

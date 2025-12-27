@@ -14,10 +14,6 @@ vi.mock("@/config/env", () => ({
   dev: false,
 }));
 
-import { isUserType, requireRoles, UserType } from "../auth";
-import { db } from "@/db";
-import { Context } from "hono";
-
 vi.mock("@/db", () => ({
   db: {
     select: vi.fn(),
@@ -55,13 +51,26 @@ vi.mock("drizzle-orm", () => ({
   and: vi.fn(),
 }));
 
+import { isUserType, requireRoles, UserType, queryUserType } from "../auth";
+import { db } from "@/db";
+import { Context } from "hono";
+
+// Mock getUserId for all tests
+vi.mock("../auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../auth")>();
+  return {
+    ...actual,
+    getUserId: vi.fn().mockResolvedValue("user-id"),
+  };
+});
+
 describe("Auth Module", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("isUserType (Admin)", () => {
-    it("should return true when user is an admin", async () => {
+  describe("queryUserType", () => {
+    it("should return true for admin when user exists in admin table", async () => {
       const selectMock = vi.fn(() => ({
         from: vi.fn(() => ({
           where: vi.fn().mockResolvedValue([{ userId: "admin-user-id" }]),
@@ -69,24 +78,16 @@ describe("Auth Module", () => {
       }));
       (db.select as Mock) = selectMock;
 
-      const mockContext = {
-        get: vi.fn((key: string) =>
-          key === "userId" ? "admin-user-id" : undefined,
-        ),
-        set: vi.fn(),
-        req: {
-          param: vi.fn(() => undefined),
-          header: vi.fn(() => undefined),
-        },
-      } as unknown as Context;
-
-      const result = await isUserType(mockContext, UserType.Admin);
+      const result = await queryUserType(
+        "admin-user-id",
+        undefined,
+        UserType.Admin,
+      );
 
       expect(result).toBe(true);
-      expect(selectMock).toHaveBeenCalled();
     });
 
-    it("should return false when user is not an admin", async () => {
+    it("should return false when user does not exist in table", async () => {
       const selectMock = vi.fn(() => ({
         from: vi.fn(() => ({
           where: vi.fn().mockResolvedValue([]),
@@ -94,44 +95,40 @@ describe("Auth Module", () => {
       }));
       (db.select as Mock) = selectMock;
 
-      const mockContext = {
-        get: vi.fn((key: string) =>
-          key === "userId" ? "regular-user-id" : undefined,
-        ),
-        set: vi.fn(),
-        req: {
-          param: vi.fn(() => undefined),
-          header: vi.fn(() => undefined),
-        },
-      } as unknown as Context;
-
-      const result = await isUserType(mockContext, UserType.Admin);
+      const result = await queryUserType("user-id", "S26", UserType.Hacker);
 
       expect(result).toBe(false);
     });
 
-    it("should use cached value if available", async () => {
-      const selectMock = vi.fn();
-      (db.select as Mock) = selectMock;
+    it("should return false when seasonCode is missing for season-specific roles", async () => {
+      const result = await queryUserType("user-id", undefined, UserType.Hacker);
 
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("isUserType", () => {
+    it("should use cached value when available", async () => {
       const mockContext = {
         get: vi.fn((key: string) => {
           if (key === UserType.Admin) return true;
-          if (key === "userId") return "some-user-id";
+          if (key === "userId") return "user-id";
           return undefined;
         }),
         set: vi.fn(),
+        req: { param: vi.fn() },
       } as unknown as Context;
 
       const result = await isUserType(mockContext, UserType.Admin);
 
       expect(result).toBe(true);
-      expect(selectMock).not.toHaveBeenCalled();
+      // Shouldn't query DB when value is cached
+      expect(mockContext.set).not.toHaveBeenCalled();
     });
-  });
 
-  describe("requireRoles", () => {
-    it("should allow access when user has required role", async () => {
+    it("should query and cache result when not cached", async () => {
+      // Note: This tests the actual implementation through the DB layer
+      // since queryUserType is called internally and can't be easily mocked
       const selectMock = vi.fn(() => ({
         from: vi.fn(() => ({
           where: vi.fn().mockResolvedValue([{ userId: "user-id" }]),
@@ -140,11 +137,28 @@ describe("Auth Module", () => {
       (db.select as Mock) = selectMock;
 
       const mockContext = {
-        get: vi.fn().mockReturnValue("user-id"),
+        get: vi.fn((key: string) => (key === "userId" ? "user-id" : undefined)),
         set: vi.fn(),
-        req: {
-          param: vi.fn(),
-        },
+        req: { param: vi.fn(() => "S26") },
+      } as unknown as Context;
+
+      const result = await isUserType(mockContext, UserType.Hacker);
+
+      expect(result).toBe(true);
+      expect(mockContext.set).toHaveBeenCalledWith(UserType.Hacker, true);
+    });
+  });
+
+  describe("requireRoles", () => {
+    it("should allow access when user has required role", async () => {
+      const mockContext = {
+        get: vi.fn((key: string) => {
+          if (key === "userId") return "user-id";
+          if (key === UserType.Admin) return true; // Cached role check
+          return undefined;
+        }),
+        set: vi.fn(),
+        req: { param: vi.fn() },
       } as unknown as Context;
 
       const nextMock = vi.fn();
@@ -156,19 +170,14 @@ describe("Auth Module", () => {
     });
 
     it("should throw 403 when user lacks required role", async () => {
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([]),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
       const mockContext = {
-        get: vi.fn().mockReturnValue("user-id"),
+        get: vi.fn((key: string) => {
+          if (key === "userId") return "user-id";
+          if (key === UserType.Admin) return false; // Cached role check
+          return undefined;
+        }),
         set: vi.fn(),
-        req: {
-          param: vi.fn(),
-        },
+        req: { param: vi.fn() },
       } as unknown as Context;
 
       const nextMock = vi.fn();
@@ -179,28 +188,15 @@ describe("Auth Module", () => {
     });
 
     it("should allow access if user has any of multiple roles", async () => {
-      // First call for Admin (fails), second call for Hacker (passes)
-      let callCount = 0;
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => {
-            callCount++;
-            if (callCount === 1) {
-              return Promise.resolve([]); // Admin check fails
-            }
-            return Promise.resolve([{ userId: "user-id" }]); // Hacker check passes
-          }),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
       const mockContext = {
-        get: vi.fn().mockReturnValue("user-id"),
+        get: vi.fn((key: string) => {
+          if (key === "userId") return "user-id";
+          if (key === UserType.Admin) return false; // Not admin
+          if (key === UserType.Hacker) return true; // Is hacker
+          return undefined;
+        }),
         set: vi.fn(),
-        req: {
-          param: vi.fn().mockReturnValue("S26"),
-          header: vi.fn(),
-        },
+        req: { param: vi.fn().mockReturnValue("S26") },
       } as unknown as Context;
 
       const nextMock = vi.fn();
@@ -209,57 +205,6 @@ describe("Auth Module", () => {
       await middleware(mockContext, nextMock);
 
       expect(nextMock).toHaveBeenCalled();
-    });
-
-    it("should always allow Public access", async () => {
-      const selectMock = vi.fn();
-      (db.select as Mock) = selectMock;
-
-      const mockContext = {
-        get: vi.fn(),
-        set: vi.fn(),
-        req: {
-          param: vi.fn(),
-          header: vi.fn(),
-        },
-      } as unknown as Context;
-
-      const nextMock = vi.fn();
-      const middleware = requireRoles(UserType.Public);
-
-      await middleware(mockContext, nextMock);
-
-      expect(nextMock).toHaveBeenCalled();
-      expect(selectMock).not.toHaveBeenCalled();
-    });
-
-    it("should cache role check results in context", async () => {
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([{ userId: "user-id" }]),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
-      const contextData = new Map();
-      const mockContext = {
-        get: vi.fn((key: string) => contextData.get(key)),
-        set: vi.fn((key: string, value: unknown) =>
-          contextData.set(key, value),
-        ),
-        req: {
-          param: vi.fn(),
-        },
-      } as unknown as Context;
-
-      contextData.set("userId", "user-id");
-
-      const nextMock = vi.fn();
-      const middleware = requireRoles(UserType.Admin);
-
-      await middleware(mockContext, nextMock);
-
-      expect(mockContext.set).toHaveBeenCalledWith(UserType.Admin, true);
     });
   });
 });

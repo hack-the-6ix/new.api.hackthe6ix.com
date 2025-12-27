@@ -33,7 +33,7 @@ const userTables = {
  * @param userType - user type to check against
  * @returns true if userId belongs to userType, false otherwise
  */
-const queryUserType = async (
+export const queryUserType = async (
   userId: string | undefined,
   seasonCode: string | undefined,
   userType: UserType,
@@ -45,7 +45,7 @@ const queryUserType = async (
 
   if (userType === UserType.User) return true; // TODO: check if userId exists in system
 
-  // need to check admin table separately since admins are not season-specific (NOTE: this feels bad for consistency, would it be better to have season-specific admins?)
+  // need to check admin table separately since admins are not season-specific
   if (userType === UserType.Admin) {
     // check if user is an admin
     try {
@@ -152,7 +152,7 @@ export const isUserType = async (
   const seasonCode = c.req.param("seasonCode");
 
   // queryUserType handles undefined userId and seasonCode cases properly
-  const res = await queryUserType(userId, seasonCode, userType);
+  const res: boolean = await queryUserType(userId, seasonCode, userType);
 
   // set cache in context for future calls in same request
   c.set(userType, res);
