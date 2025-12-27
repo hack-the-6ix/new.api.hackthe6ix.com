@@ -6,8 +6,8 @@ import {
   unique,
   real,
   text,
+  primaryKey,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { season } from "./season";
 
 export const hackerStatusEnum = pgEnum("hackerStatus", [
@@ -22,9 +22,6 @@ export const hackerStatusEnum = pgEnum("hackerStatus", [
 export const hacker = pgTable(
   "hacker",
   {
-    hackerId: uuid("hackerId")
-      .primaryKey()
-      .default(sql`uuidv7()`),
     userId: uuid("userId").notNull(),
     seasonCode: char("seasonCode", { length: 3 })
       .notNull()
@@ -33,5 +30,8 @@ export const hacker = pgTable(
     status: hackerStatusEnum("status"),
     nfcId: text("nfcId").unique(),
   },
-  (t) => [unique().on(t.userId, t.seasonCode)],
+  (t) => [
+    unique().on(t.userId, t.seasonCode),
+    primaryKey({ columns: [t.userId, t.seasonCode] }),
+  ],
 );

@@ -1,5 +1,5 @@
 {
-  "id": "af6ce3ac-5e5d-4eef-a25c-161a6837f77a",
+  "id": "9f62380d-599f-4941-b64d-38dae49e2f63",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -34,18 +34,18 @@
       "name": "event",
       "schema": "",
       "columns": {
-        "eventId": {
-          "name": "eventId",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuidv7()"
-        },
         "seasonCode": {
           "name": "seasonCode",
           "type": "char(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "eventId": {
+          "name": "eventId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "uuidv7()"
         },
         "eventName": {
           "name": "eventName",
@@ -82,7 +82,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "event_seasonCode_eventId_pk": {
+          "name": "event_seasonCode_eventId_pk",
+          "columns": [
+            "seasonCode",
+            "eventId"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -92,27 +100,20 @@
       "name": "eventCheckIn",
       "schema": "",
       "columns": {
-        "eventCheckInId": {
-          "name": "eventCheckInId",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuidv7()"
-        },
         "seasonCode": {
           "name": "seasonCode",
           "type": "char(3)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "userId": {
-          "name": "userId",
-          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "eventId": {
           "name": "eventId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -152,31 +153,48 @@
           "onDelete": "no action",
           "onUpdate": "cascade"
         },
-        "eventCheckIn_eventId_event_eventId_fk": {
-          "name": "eventCheckIn_eventId_event_eventId_fk",
+        "eventCheckIn_seasonCode_eventId_event_seasonCode_eventId_fk": {
+          "name": "eventCheckIn_seasonCode_eventId_event_seasonCode_eventId_fk",
           "tableFrom": "eventCheckIn",
           "tableTo": "event",
           "columnsFrom": [
+            "seasonCode",
             "eventId"
           ],
           "columnsTo": [
+            "seasonCode",
             "eventId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "eventCheckIn_seasonCode_userId_hacker_seasonCode_userId_fk": {
+          "name": "eventCheckIn_seasonCode_userId_hacker_seasonCode_userId_fk",
+          "tableFrom": "eventCheckIn",
+          "tableTo": "hacker",
+          "columnsFrom": [
+            "seasonCode",
+            "userId"
+          ],
+          "columnsTo": [
+            "seasonCode",
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "eventCheckIn_userId_eventId_unique": {
-          "name": "eventCheckIn_userId_eventId_unique",
-          "nullsNotDistinct": false,
+      "compositePrimaryKeys": {
+        "eventCheckIn_seasonCode_eventId_userId_pk": {
+          "name": "eventCheckIn_seasonCode_eventId_userId_pk",
           "columns": [
-            "userId",
-            "eventId"
+            "seasonCode",
+            "eventId",
+            "userId"
           ]
         }
       },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -188,13 +206,26 @@
         "formId": {
           "name": "formId",
           "type": "uuid",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "default": "uuidv7()"
         },
         "seasonCode": {
           "name": "seasonCode",
           "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventId": {
+          "name": "eventId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "formName": {
+          "name": "formName",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -234,7 +265,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "form_seasonCode_formId_pk": {
+          "name": "form_seasonCode_formId_pk",
+          "columns": [
+            "seasonCode",
+            "formId"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -247,14 +286,15 @@
         "formQuestionId": {
           "name": "formQuestionId",
           "type": "varchar(80)",
-          "primaryKey": true,
-          "notNull": true
+          "primaryKey": false,
+          "notNull": false
         },
         "formId": {
           "name": "formId",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "uuidv7()"
         },
         "seasonCode": {
           "name": "seasonCode",
@@ -278,19 +318,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "formQuestion_formId_form_formId_fk": {
-          "name": "formQuestion_formId_form_formId_fk",
-          "tableFrom": "formQuestion",
-          "tableTo": "form",
-          "columnsFrom": [
-            "formId"
-          ],
-          "columnsTo": [
-            "formId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "formQuestion_seasonCode_season_seasonCode_fk": {
           "name": "formQuestion_seasonCode_season_seasonCode_fk",
           "tableFrom": "formQuestion",
@@ -303,9 +330,33 @@
           ],
           "onDelete": "no action",
           "onUpdate": "cascade"
+        },
+        "formQuestion_seasonCode_formId_form_seasonCode_formId_fk": {
+          "name": "formQuestion_seasonCode_formId_form_seasonCode_formId_fk",
+          "tableFrom": "formQuestion",
+          "tableTo": "form",
+          "columnsFrom": [
+            "seasonCode",
+            "formId"
+          ],
+          "columnsTo": [
+            "seasonCode",
+            "formId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "formQuestion_formQuestionId_formId_seasonCode_pk": {
+          "name": "formQuestion_formQuestionId_formId_seasonCode_pk",
+          "columns": [
+            "formQuestionId",
+            "formId",
+            "seasonCode"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -318,15 +369,16 @@
         "formResponseId": {
           "name": "formResponseId",
           "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
+          "primaryKey": false,
+          "notNull": false,
           "default": "uuidv7()"
         },
         "formId": {
           "name": "formId",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "uuidv7()"
         },
         "userId": {
           "name": "userId",
@@ -363,19 +415,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "formResponse_formId_form_formId_fk": {
-          "name": "formResponse_formId_form_formId_fk",
-          "tableFrom": "formResponse",
-          "tableTo": "form",
-          "columnsFrom": [
-            "formId"
-          ],
-          "columnsTo": [
-            "formId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "formResponse_seasonCode_season_seasonCode_fk": {
           "name": "formResponse_seasonCode_season_seasonCode_fk",
           "tableFrom": "formResponse",
@@ -387,10 +426,34 @@
             "seasonCode"
           ],
           "onDelete": "no action",
+          "onUpdate": "cascade"
+        },
+        "formResponse_seasonCode_formId_form_seasonCode_formId_fk": {
+          "name": "formResponse_seasonCode_formId_form_seasonCode_formId_fk",
+          "tableFrom": "formResponse",
+          "tableTo": "form",
+          "columnsFrom": [
+            "seasonCode",
+            "formId"
+          ],
+          "columnsTo": [
+            "seasonCode",
+            "formId"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "formResponse_seasonCode_userId_formId_pk": {
+          "name": "formResponse_seasonCode_userId_formId_pk",
+          "columns": [
+            "seasonCode",
+            "userId",
+            "formId"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "formResponse_seasonCode_userId_formId_unique": {
           "name": "formResponse_seasonCode_userId_formId_unique",
@@ -410,13 +473,6 @@
       "name": "hacker",
       "schema": "",
       "columns": {
-        "hackerId": {
-          "name": "hackerId",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuidv7()"
-        },
         "userId": {
           "name": "userId",
           "type": "uuid",
@@ -465,7 +521,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "hacker_userId_seasonCode_pk": {
+          "name": "hacker_userId_seasonCode_pk",
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "hacker_nfcId_unique": {
           "name": "hacker_nfcId_unique",
@@ -494,8 +558,8 @@
         "hackerApplicationReviewId": {
           "name": "hackerApplicationReviewId",
           "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
+          "primaryKey": false,
+          "notNull": false,
           "default": "uuidv7()"
         },
         "seasonCode": {
@@ -587,9 +651,47 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "hackerApplicationReview_winnerId_seasonCode_hacker_userId_seasonCode_fk": {
+          "name": "hackerApplicationReview_winnerId_seasonCode_hacker_userId_seasonCode_fk",
+          "tableFrom": "hackerApplicationReview",
+          "tableTo": "hacker",
+          "columnsFrom": [
+            "winnerId",
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "userId",
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "hackerApplicationReview_loserId_seasonCode_hacker_userId_seasonCode_fk": {
+          "name": "hackerApplicationReview_loserId_seasonCode_hacker_userId_seasonCode_fk",
+          "tableFrom": "hackerApplicationReview",
+          "tableTo": "hacker",
+          "columnsFrom": [
+            "loserId",
+            "seasonCode"
+          ],
+          "columnsTo": [
+            "userId",
+            "seasonCode"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "hackerApplicationReview_hackerApplicationReviewId_seasonCode_pk": {
+          "name": "hackerApplicationReview_hackerApplicationReviewId_seasonCode_pk",
+          "columns": [
+            "hackerApplicationReviewId",
+            "seasonCode"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -599,13 +701,6 @@
       "name": "mentor",
       "schema": "",
       "columns": {
-        "mentorId": {
-          "name": "mentorId",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuidv7()"
-        },
         "userId": {
           "name": "userId",
           "type": "uuid",
@@ -635,7 +730,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "mentor_userId_seasonCode_pk": {
+          "name": "mentor_userId_seasonCode_pk",
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "mentor_userId_seasonCode_unique": {
           "name": "mentor_userId_seasonCode_unique",
@@ -714,13 +817,6 @@
       "name": "sponsor",
       "schema": "",
       "columns": {
-        "sponsorId": {
-          "name": "sponsorId",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuidv7()"
-        },
         "userId": {
           "name": "userId",
           "type": "uuid",
@@ -756,7 +852,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "sponsor_userId_seasonCode_pk": {
+          "name": "sponsor_userId_seasonCode_pk",
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "sponsor_userId_seasonCode_unique": {
           "name": "sponsor_userId_seasonCode_unique",
@@ -775,13 +879,6 @@
       "name": "volunteer",
       "schema": "",
       "columns": {
-        "volunteerId": {
-          "name": "volunteerId",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuidv7()"
-        },
         "userId": {
           "name": "userId",
           "type": "uuid",
@@ -811,7 +908,15 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "volunteer_userId_seasonCode_pk": {
+          "name": "volunteer_userId_seasonCode_pk",
+          "columns": [
+            "userId",
+            "seasonCode"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "volunteer_userId_seasonCode_unique": {
           "name": "volunteer_userId_seasonCode_unique",
