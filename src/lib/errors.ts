@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
+import { isUserType, UserType } from "@/lib/auth";
+import { dev } from "@/config/env";
 
 /**
  * Generic error detail for individual errors
@@ -83,15 +85,15 @@ export class DBError extends ApiError {
   }
 }
 
-export const handleError = (error: unknown, c: Context) => {
-  const isAdmin: boolean = true; // TODO: determine user type from context in real implementation
+export const handleError = async (error: unknown, c: Context) => {
+  const admin: boolean = dev || (await isUserType(c, UserType.Admin));
 
   if (error instanceof ApiError) {
     // only logging internal server errors to avoid cluttering logs, can be adjusted to include more error codes
     if (error.status === 500 || error instanceof DBError) {
       console.error(error);
     }
-    if (isAdmin) {
+    if (admin) {
       return c.json(error.toAdminJSON(), error.status);
     }
     return c.json(error.toJSON(), error.status);
@@ -104,7 +106,7 @@ export const handleError = (error: unknown, c: Context) => {
           {
             code: "INTERNAL_SERVER_ERROR",
             message: "An unexpected error occurred.",
-            detail: isAdmin ? String(error) : undefined,
+            detail: admin ? String(error) : undefined,
           },
         ],
         timestamp: new Date().toUTCString(),

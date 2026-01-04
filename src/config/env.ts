@@ -4,7 +4,7 @@ import { expand } from "dotenv-expand";
 import { ZodError, z } from "zod";
 
 const EnvSchema = z.object({
-  NODE_ENV: z.string().default("dev"),
+  NODE_ENV: z.string(),
   DB_HOST: z.string(),
   DB_USER: z.string(),
   DB_PASSWORD: z.string(),
@@ -33,4 +33,7 @@ try {
   }
 }
 
-export default EnvSchema.parse(process.env);
+const env = EnvSchema.parse(process.env);
+
+export const dev = env.NODE_ENV === "dev";
+export default env;
