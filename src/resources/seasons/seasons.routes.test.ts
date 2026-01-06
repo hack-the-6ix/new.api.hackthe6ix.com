@@ -51,7 +51,6 @@ vi.mock("@/resources/seasons/seasons.service", () => ({
   getSeasonDetails: vi.fn(),
 }));
 
-
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((field, value) => ({ field, value, type: "eq" })),
   and: vi.fn((...conditions) => ({ conditions, type: "and" })),
@@ -79,31 +78,36 @@ vi.mock("@/lib/auth", () => ({
 describe("Seasons Routes", () => {
   describe("POST /api/seasons", () => {
     it("should create a season successfully", async () => {
+      // set up
       (createSeason as Mock).mockResolvedValue(true);
 
+      // exercise
       const res = await app.request("/api/seasons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seasonCode: "S26" }),
       });
 
+      // verify
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ message: "success" });
       expect(createSeason).toHaveBeenCalledWith("S26");
     });
 
     it("should return 409 on conflicting seasonCode", async () => {
+      //setup
       (createSeason as Mock).mockResolvedValue(null);
 
+      // exercise
       const res = await app.request("/api/seasons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seasonCode: "S26" }),
       });
 
+      // verify
       expect(res.status).toBe(409);
       const body = await res.json();
-
       expect(body.error?.[0]).toMatchObject({
         code: "CONFLICT",
         message: "Conflicting seasonCode",
@@ -111,68 +115,76 @@ describe("Seasons Routes", () => {
     });
 
     it("should return 400 for invalid seasonCode", async () => {
+      // exercise
       const res = await app.request("/api/seasons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seasonCode: "TOO_LONG" }),
       });
 
+      // verify
       expect(res.status).toBe(400);
     });
 
     it("should return 500 when service throws", async () => {
+      // setup
       (createSeason as Mock).mockRejectedValue(new Error("DB failed"));
 
+      // exercise
       const res = await app.request("/api/seasons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seasonCode: "S26" }),
       });
 
+      // verify
       expect(res.status).toBe(500);
     });
   });
 
-  /* ────────────────────────────────────────────
-     GET /api/seasons/:seasonCode
-  ──────────────────────────────────────────── */
   describe("GET /api/seasons/:seasonCode", () => {
     it("should return season details", async () => {
+      // set up
       const mockSeason = {
         seasonId: "550e8400-e29b-41d4-a716-446655440000",
         seasonCode: "S26",
         hackerApplicationFormId: "550e8400-e29b-41d4-a716-446655440001",
         rsvpFormId: "550e8400-e29b-41d4-a716-446655440002",
       };
-
       (getSeasonDetails as Mock).mockResolvedValue(mockSeason);
 
+      // exercise
       const res = await app.request("/api/seasons/S26");
 
+      // verify
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockSeason);
       expect(getSeasonDetails).toHaveBeenCalledWith("S26");
     });
 
     it("should return 400 for invalid seasonCode param", async () => {
+      // exercise
       const res = await app.request("/api/seasons/INVALID");
 
+      // verify
       expect(res.status).toBe(400);
     });
 
     it("should return 500 on database error", async () => {
+      // setup
       (getSeasonDetails as Mock).mockRejectedValue(
         new ApiError(500, {
           code: "DATABASE_ERROR",
           message: "A database error occurred",
-        })
+        }),
       );
 
+      // exercise
       const res = await app.request("/api/seasons/S26");
 
+      // verify
       expect(res.status).toBe(500);
       const body = await res.json();
-
       expect(body.success).toBe(false);
       expect(Array.isArray(body.error)).toBe(true);
     });

@@ -57,7 +57,7 @@ seasonsRoute.post(
       });
     }
     return c.json({ message: "success" });
-  }
+  },
 );
 
 const getSeasonDetailResponse = {
@@ -89,7 +89,7 @@ seasonsRoute.get(
 
     const response = await getSeasonDetails(seasonCode);
     return c.json(response);
-  }
+  },
 );
 
 export default seasonsRoute;

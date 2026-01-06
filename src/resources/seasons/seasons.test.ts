@@ -95,35 +95,43 @@ describe("getSeasonDetails", () => {
   });
 
   it("returns a season record when found", async () => {
+    // setup
     const mockRecord = { seasonCode: mockSeasonCode, name: "Test Season" };
     mockLimit.mockResolvedValue([mockRecord]);
 
+    // exercise
     const result = await getSeasonDetails(mockSeasonCode);
 
+    // verify
     expect(db.select).toHaveBeenCalled();
     expect(mockFrom).toHaveBeenCalled();
     expect(result).toEqual(mockRecord);
   });
 
   it("returns null when no season is found", async () => {
+    // setup
     mockLimit.mockResolvedValue([undefined]); // first item missing
 
+    // exercise
     const result = await getSeasonDetails(mockSeasonCode);
 
+    // verify
     expect(result).toBeNull();
   });
 
   it("throws an error with formatted db message when db call fails", async () => {
+    // setup
     mockLimit.mockRejectedValue(new Error("raw db error"));
 
+    // exercise
     (handleDbError as Mock).mockReturnValue({
       message: "formatted db error",
     });
 
+    // verify
     await expect(getSeasonDetails(mockSeasonCode)).rejects.toThrow(
       "formatted db error"
     );
-
     expect(handleDbError).toHaveBeenCalled();
   });
 });
