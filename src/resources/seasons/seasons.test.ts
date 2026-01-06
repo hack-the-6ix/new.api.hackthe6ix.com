@@ -130,7 +130,7 @@ describe("getSeasonDetails", () => {
 
     // verify
     await expect(getSeasonDetails(mockSeasonCode)).rejects.toThrow(
-      "formatted db error"
+      "formatted db error",
     );
     expect(handleDbError).toHaveBeenCalled();
   });
