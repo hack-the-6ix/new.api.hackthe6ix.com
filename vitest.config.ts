@@ -11,6 +11,7 @@ export default defineConfig({
         functions: 70,
         lines: 70,
       },
+      exclude: ["src/db/schema/**"],
     },
     alias: {
       "@": path.resolve(__dirname, "src"),
