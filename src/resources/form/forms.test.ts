@@ -13,15 +13,35 @@ vi.mock("@/config/env", () => ({
   },
 }));
 
-// --- db + schema mocks ---
-vi.mock("@/db", () => ({
-  db: {
-    insert: vi.fn(),
-    select: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
+vi.mock("@/db", () => {
+  // one shared set of mocks used both by db.* and tx.*
+  const insert = vi.fn();
+  const select = vi.fn();
+  const update = vi.fn();
+  const del = vi.fn();
+
+  return {
+    db: {
+      insert,
+      select,
+      update,
+      delete: del,
+      // transaction calls the callback with an object that uses
+      transaction: vi.fn(
+        async (
+          fn: (tx: {
+            insert: typeof insert;
+            select: typeof select;
+            update: typeof update;
+            delete: typeof del;
+          }) => Promise<unknown>,
+        ) => {
+          return fn({ insert, select, update, delete: del });
+        },
+      ),
+    },
+  };
+});
 
 vi.mock("@/db/schema", () => ({
   form: { formId: "form.formId", seasonCode: "form.seasonCode" },
@@ -281,7 +301,7 @@ describe("forms.service", () => {
       });
     });
 
-    it("deletes questions then deletes form", async () => {
+    it("deletes form", async () => {
       // exists check
       const whereMock = vi.fn().mockResolvedValue([{ formId: FORM_ID }]);
       const fromMock = vi.fn(() => ({ where: whereMock }));
@@ -292,9 +312,9 @@ describe("forms.service", () => {
 
       await expect(deleteForm("S26", FORM_ID)).resolves.toBeUndefined();
 
-      // Called twice: first formQuestion, then form
-      expect((db.delete as Mock).mock.calls[0][0]).toBe(formQuestion);
-      expect((db.delete as Mock).mock.calls[1][0]).toBe(form);
+      expect((db.delete as Mock).mock.calls.length).toBe(1);
+      expect((db.delete as Mock).mock.calls[0][0]).toBe(form);
+      expect(whereDeleteMock).toHaveBeenCalled();
     });
   });
 

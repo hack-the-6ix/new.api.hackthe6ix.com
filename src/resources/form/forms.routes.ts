@@ -7,11 +7,9 @@ import {
   deleteForm,
   cloneForm,
 } from "@/resources/form/forms.service";
-import { isAdmin } from "@/lib/auth";
-import { ApiError } from "@/lib/errors";
 import { genericErrorResponse } from "@/config/openapi";
+import { requireRoles, UserType } from "@/lib/auth";
 
-// Existing schemas (keep yours)
 const questionSchema = z.object({
   formQuestionId: z.string().max(80),
   questionType: z.string(),
@@ -19,33 +17,30 @@ const questionSchema = z.object({
 });
 
 const createFormBodySchema = z.object({
-  sessionToken: z.string(),
-  openTime: z.string().datetime().optional().nullable(),
-  closeTime: z.string().datetime().optional().nullable(),
+  openTime: z.iso.datetime().optional().nullable(),
+  closeTime: z.iso.datetime().optional().nullable(),
   tags: z.array(z.string()).optional().default([]),
   questions: z.array(questionSchema).optional().default([]),
 });
 
 const updateFormBodySchema = z.object({
-  sessionToken: z.string(),
-  openTime: z.string().datetime().optional().nullable(),
-  closeTime: z.string().datetime().optional().nullable(),
+  openTime: z.iso.datetime().optional().nullable(),
+  closeTime: z.iso.datetime().optional().nullable(),
   tags: z.array(z.string()).optional(),
-  // If provided: replace questions. If omitted: leave unchanged.
   questions: z.array(questionSchema).optional(),
 });
 
 const formSchema = z.object({
-  formId: z.string().uuid(),
+  formId: z.guid(),
   seasonCode: z.string().length(3),
-  openTime: z.string().datetime().nullable(),
-  closeTime: z.string().datetime().nullable(),
+  openTime: z.iso.datetime().nullable(),
+  closeTime: z.iso.datetime().nullable(),
   tags: z.array(z.string()),
 });
 
 const formsRoute = new Hono();
 
-// --- existing CREATE (keep your code) ---
+// --- CREATE ---
 formsRoute.post(
   "/seasons/:seasonCode/forms",
   describeRoute({
@@ -64,18 +59,10 @@ formsRoute.post(
   }),
   validator("param", z.object({ seasonCode: z.string().length(3) })),
   validator("json", createFormBodySchema),
+  requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
     const body = c.req.valid("json");
-
-    const admin = await isAdmin(body.sessionToken);
-    if (!admin) {
-      throw new ApiError(403, {
-        code: "FORBIDDEN",
-        message: "Admin access required",
-        suggestion: "Ensure you have admin privileges",
-      });
-    }
 
     const created = await createForm({
       seasonCode: params.seasonCode,
@@ -120,19 +107,9 @@ formsRoute.post(
     "param",
     z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
   ),
-  validator("json", z.object({ sessionToken: z.string() })),
+  requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
-    const body = c.req.valid("json");
-
-    const admin = await isAdmin(body.sessionToken);
-    if (!admin) {
-      throw new ApiError(403, {
-        code: "FORBIDDEN",
-        message: "Admin access required",
-        suggestion: "Ensure you have admin privileges",
-      });
-    }
 
     const cloned = await cloneForm(params.seasonCode, params.formId);
 
@@ -172,18 +149,10 @@ formsRoute.post(
     z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
   ),
   validator("json", updateFormBodySchema),
+  requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
     const body = c.req.valid("json");
-
-    const admin = await isAdmin(body.sessionToken);
-    if (!admin) {
-      throw new ApiError(403, {
-        code: "FORBIDDEN",
-        message: "Admin access required",
-        suggestion: "Ensure you have admin privileges",
-      });
-    }
 
     const updated = await updateForm({
       seasonCode: params.seasonCode,
@@ -227,19 +196,9 @@ formsRoute.delete(
     "param",
     z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
   ),
-  validator("json", z.object({ sessionToken: z.string() })),
+  requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
-    const body = c.req.valid("json");
-
-    const admin = await isAdmin(body.sessionToken);
-    if (!admin) {
-      throw new ApiError(403, {
-        code: "FORBIDDEN",
-        message: "Admin access required",
-        suggestion: "Ensure you have admin privileges",
-      });
-    }
 
     await deleteForm(params.seasonCode, params.formId);
     return c.body(null, 204);

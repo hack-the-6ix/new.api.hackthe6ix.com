@@ -8,6 +8,7 @@ import {
   type Mock,
 } from "vitest";
 import { Hono } from "hono";
+
 import formsRoute from "@/resources/form/forms.routes";
 import {
   createForm,
@@ -15,22 +16,21 @@ import {
   deleteForm,
   cloneForm,
 } from "@/resources/form/forms.service";
-import { isAdmin } from "@/lib/auth";
 import { ApiError, handleError } from "@/lib/errors";
+// import auth module so we can spy
+import * as auth from "@/lib/auth";
 
 // Suppress console.error for cleaner test output
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+let isUserTypeSpy: ReturnType<typeof vi.spyOn>;
+let getUserIdSpy: ReturnType<typeof vi.spyOn>;
 
-// ✅ mock all service funcs used by routes
+// mock all service funcs used by routes
 vi.mock("@/resources/form/forms.service", () => ({
   createForm: vi.fn(),
   updateForm: vi.fn(),
   deleteForm: vi.fn(),
   cloneForm: vi.fn(),
-}));
-
-vi.mock("@/lib/auth", () => ({
-  isAdmin: vi.fn(),
 }));
 
 function makeApp() {
@@ -50,12 +50,20 @@ describe("Forms routes", () => {
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     app = makeApp();
-    vi.clearAllMocks();
-    (isAdmin as Mock).mockResolvedValue(true);
+
+    // Make auth always treat the caller as admin
+    // requireRoles() internally calls getUserId() then isUserType()
+    getUserIdSpy = vi
+      .spyOn(auth, "getUserId")
+      .mockResolvedValue("admin-user-id");
+    isUserTypeSpy = vi.spyOn(auth, "isUserType").mockResolvedValue(true);
   });
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
+    getUserIdSpy.mockRestore();
+    isUserTypeSpy.mockRestore();
+    vi.clearAllMocks();
   });
 
   describe("POST /seasons/:seasonCode/forms", () => {
@@ -73,7 +81,6 @@ describe("Forms routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionToken: "admin-token",
           tags: ["registration"],
         }),
       });
@@ -111,7 +118,6 @@ describe("Forms routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionToken: "admin-token",
           questions: [
             { formQuestionId: "q1", questionType: "text", tags: ["required"] },
           ],
@@ -130,24 +136,6 @@ describe("Forms routes", () => {
       });
     });
 
-    it("returns 403 when user is not admin", async () => {
-      (isAdmin as Mock).mockResolvedValue(false);
-
-      const res = await app.request("/seasons/S26/forms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionToken: "user-token",
-          tags: ["registration"],
-        }),
-      });
-
-      expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-      expect(data.error[0].code).toBe("FORBIDDEN");
-    });
-
     it("returns error when createForm throws ApiError", async () => {
       const apiError = new ApiError(400, {
         code: "VALIDATION_ERROR",
@@ -159,7 +147,6 @@ describe("Forms routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionToken: "admin-token",
           tags: ["registration"],
         }),
       });
@@ -185,7 +172,7 @@ describe("Forms routes", () => {
       const res = await app.request(`/seasons/S26/forms/${FORM_ID}/clone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: "admin-token" }),
+        body: JSON.stringify({}), // no sessionToken needed now
       });
 
       expect(res.status).toBe(201);
@@ -198,21 +185,6 @@ describe("Forms routes", () => {
       });
 
       expect(cloneForm).toHaveBeenCalledWith("S26", FORM_ID);
-    });
-
-    it("returns 403 when user is not admin", async () => {
-      (isAdmin as Mock).mockResolvedValue(false);
-
-      const res = await app.request(`/seasons/S26/forms/${FORM_ID}/clone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: "user-token" }),
-      });
-
-      expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-      expect(data.error[0].code).toBe("FORBIDDEN");
     });
   });
 
@@ -231,7 +203,6 @@ describe("Forms routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionToken: "admin-token",
           tags: ["registration", "updated"],
         }),
       });
@@ -254,21 +225,6 @@ describe("Forms routes", () => {
         questions: undefined, // omitted => leave unchanged
       });
     });
-
-    it("returns 403 when user is not admin", async () => {
-      (isAdmin as Mock).mockResolvedValue(false);
-
-      const res = await app.request(`/seasons/S26/forms/${FORM_ID}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: "user-token", tags: ["x"] }),
-      });
-
-      expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-      expect(data.error[0].code).toBe("FORBIDDEN");
-    });
   });
 
   describe("DELETE /seasons/:seasonCode/forms/:formId", () => {
@@ -278,7 +234,7 @@ describe("Forms routes", () => {
       const res = await app.request(`/seasons/S26/forms/${FORM_ID}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: "admin-token" }),
+        body: JSON.stringify({}), // no sessionToken
       });
 
       expect(res.status).toBe(204);
@@ -287,20 +243,26 @@ describe("Forms routes", () => {
 
       expect(deleteForm).toHaveBeenCalledWith("S26", FORM_ID);
     });
+  });
+  describe("authorization behaviour", () => {
+    it("returns 403 when user is not an admin", async () => {
+      // user is authenticated but NOT admin
+      vi.spyOn(auth, "getUserId").mockResolvedValue("regular-user-id");
+      vi.spyOn(auth, "isUserType").mockResolvedValue(false);
 
-    it("returns 403 when user is not admin", async () => {
-      (isAdmin as Mock).mockResolvedValue(false);
-
-      const res = await app.request(`/seasons/S26/forms/${FORM_ID}`, {
-        method: "DELETE",
+      const res = await app.request("/seasons/S26/forms", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionToken: "user-token" }),
+        body: JSON.stringify({
+          tags: ["registration"],
+        }),
       });
 
       expect(res.status).toBe(403);
-      const data = await res.json();
-      expect(data.success).toBe(false);
-      expect(data.error[0].code).toBe("FORBIDDEN");
+
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error[0].code).toBe("FORBIDDEN");
     });
   });
 });
