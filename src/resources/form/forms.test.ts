@@ -51,6 +51,22 @@ vi.mock("@/db/schema", () => ({
   },
 }));
 
+// 🔹 Mock auth so errors.ts can import it without touching real @/db/schema
+vi.mock("@/lib/auth", () => ({
+  isUserType: vi.fn(),
+  getUserId: vi.fn(),
+  requireRoles: vi.fn(),
+  UserType: {
+    User: "user",
+    Public: "public",
+    Admin: "admin",
+    Hacker: "hacker",
+    Sponsor: "sponsor",
+    Mentor: "mentor",
+    Volunteer: "volunteer",
+  },
+}));
+
 import { ApiError } from "@/lib/errors";
 
 vi.mock("@/db/utils/dbErrorUtils", () => ({
