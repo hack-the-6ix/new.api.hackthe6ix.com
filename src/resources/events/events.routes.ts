@@ -1,88 +1,138 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { checkInUser, createEvent, fetchEvents } from "./events.service";
-import { validator } from "hono-openapi";
+import { validator, describeRoute } from "hono-openapi";
+import { ApiError } from "@/lib/errors";
+import { genericErrorResponse } from "@/config/openapi";
 
 const eventBodySchema = z.object({
   eventName: z.string().min(1, "Event name is required"),
-  startTime: z.string().datetime(),
-  endTime: z.string().datetime(),
+  startTime: z.iso.datetime(),
+  endTime: z.iso.datetime(),
 });
 
 const checkInBodySchema = z.object({
-  userId: z.string().uuid("Invalid userId format"),
-  checkInAuthor: z.string().uuid("Invalid checkInAuthor format"),
+  userId: z.uuid("Invalid userId format"),
+  checkInAuthor: z.uuid("Invalid checkInAuthor format"),
+  checkInNotes: z.string().optional(),
 });
 
 const eventsRoute = new Hono();
 
-// list all events
-eventsRoute.get("/seasons/:seasonCode/events", async (c) => {
-  const seasonCode = c.req.param("seasonCode");
-  try {
-    const events = await fetchEvents(seasonCode);
-    return events.length
-      ? c.json({ data: events })
-      : c.json({ message: "No events found" }, 404);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch events";
-    return c.json({ message }, 400);
-  }
-});
+const getEventsDescription = {
+  summary: "Get Events",
+  description: "Get all events for a season",
+  tags: ["Events"],
+  responses: {
+    200: {
+      description: "Successful response",
+    },
+    ...genericErrorResponse(500),
+    ...genericErrorResponse(404),
+  },
+};
 
-// create new event
+// List all events
+eventsRoute.get(
+  "/seasons/:seasonCode/events",
+  describeRoute(getEventsDescription),
+  async (c) => {
+    const seasonCode = c.req.param("seasonCode");
+
+    const response = await fetchEvents(seasonCode);
+
+    if (!response) {
+      throw new ApiError(404, {
+        code: "NO_EVENTS_FOUND",
+        message: "No events found",
+        suggestion: "Verify the seasonCode is correct.",
+      });
+    }
+    return c.json(response);
+  },
+);
+
+const createEventDescription = {
+  summary: "Create Event",
+  description: "Create a new event for a season",
+  tags: ["Events"],
+  responses: {
+    201: {
+      description: "Event created",
+    },
+    ...genericErrorResponse(500),
+    ...genericErrorResponse(409),
+  },
+};
+
+// Create new event
 eventsRoute.post(
   "/seasons/:seasonCode/events",
+  describeRoute(createEventDescription),
   validator("json", eventBodySchema),
+
   async (c) => {
     const seasonCode = c.req.param("seasonCode");
     const body = c.req.valid("json");
 
-    try {
-      const result = await createEvent(
-        seasonCode,
-        body.eventName,
-        body.startTime,
-        body.endTime,
-      );
+    const result = await createEvent(
+      seasonCode,
+      body.eventName,
+      body.startTime,
+      body.endTime,
+    );
 
-      return result
-        ? c.json({ message: "Event created successfully", data: result }, 201)
-        : c.json({ message: "Event already exists" }, 409);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to create event";
-      return c.json({ message }, 400);
+    if (!result) {
+      throw new ApiError(409, {
+        code: "EVENT_ALREADY_EXISTS",
+        message: "Event already exists",
+        suggestion:
+          "Ensure you are creating a new event with a different name.",
+      });
     }
+    return c.json(result);
   },
 );
+
+const checkInDescription = {
+  summary: "Check In User",
+  description: "Check a user into an event",
+  tags: ["Events"],
+  responses: {
+    200: {
+      description: "Successful check-in",
+    },
+    ...genericErrorResponse(500),
+    ...genericErrorResponse(404),
+  },
+};
 
 // check in user to event
 eventsRoute.post(
   "/seasons/:seasonCode/events/:eventId/check-in",
+  describeRoute(checkInDescription),
   validator("json", checkInBodySchema),
   async (c) => {
     const seasonCode = c.req.param("seasonCode");
     const eventId = c.req.param("eventId");
-    const body = await c.req.json();
+    const body = await c.req.valid("json");
 
-    try {
-      const result = await checkInUser(
-        seasonCode,
-        eventId,
-        body.userId,
-        body.checkInAuthor,
-        body.checkInNotes,
-      );
-      return result
-        ? c.json({ message: "User checked in successfully", data: result }, 200)
-        : c.json({ message: "Failed to check in user" }, 500);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to check in user";
-      return c.json({ message }, 400);
+    const response = await checkInUser(
+      seasonCode,
+      eventId,
+      body.userId,
+      body.checkInAuthor,
+      body.checkInNotes,
+    );
+
+    if (!response) {
+      throw new ApiError(500, {
+        code: "USER_CHECKIN_FAILED",
+        message: "Failed to check in user",
+        suggestion: "Ensure correct userId is provided.",
+      });
     }
+    return c.json(response);
   },
 );
 
