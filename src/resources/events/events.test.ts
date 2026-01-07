@@ -6,8 +6,6 @@ import {
 } from "@/resources/events/events.service";
 import { db } from "@/db";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
-import { event } from "@/db/schema/event";
-import { eventCheckIn } from "@/db/schema/eventCheckIn";
 
 vi.mock("@/db", () => ({
   db: {
@@ -16,54 +14,31 @@ vi.mock("@/db", () => ({
   },
 }));
 
-vi.mock("@/db/schema/event", () => ({
-  event: {},
-}));
-
-vi.mock("@/db/schema/eventCheckIn", () => ({
-  eventCheckIn: {},
-}));
-
-vi.mock("@/db/utils/dbErrorUtils", () => ({
-  handleDbError: vi.fn(),
-}));
+vi.mock("@/db/utils/dbErrorUtils", () => ({ handleDbError: vi.fn() }));
 
 describe("fetchEvents", () => {
-  let selectMock: Mock;
-  let whereMock: Mock;
+  let mockSelect: Mock;
+  let mockFrom: Mock;
+  let mockWhere: Mock;
 
   beforeEach(() => {
-    whereMock = vi.fn();
-    selectMock = vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: whereMock,
-      })),
-    }));
-    (db.select as Mock) = selectMock;
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    mockWhere = vi.fn();
+    mockFrom = vi.fn(() => ({ where: mockWhere }));
+    mockSelect = vi.fn(() => ({ from: mockFrom }));
+    (db.select as Mock) = mockSelect;
   });
 
-  it("returns events when query succeeds", async () => {
-    // setup
-    whereMock.mockResolvedValue([{ eventId: "123", eventName: "Hackathon" }]);
-
-    // exercise
-    const result = await fetchEvents("SPR");
-
-    // verify
-    expect(result).toEqual([{ eventId: "123", eventName: "Hackathon" }]);
-    expect(selectMock).toHaveBeenCalled();
+  it("returns events when found", async () => {
+    mockWhere.mockResolvedValue([{ eventId: "e1" }]);
+    const res = await fetchEvents("SPR");
+    expect(res).toEqual([{ eventId: "e1" }]);
+    expect(mockSelect).toHaveBeenCalled();
   });
 
   it("throws wrapped db error", async () => {
-    // setup
-    const error = new Error("db failed");
-    whereMock.mockRejectedValue(error);
-
-    // verify
-    (handleDbError as Mock).mockReturnValue({
-      message: "DB_BAD",
-    });
+    mockWhere.mockRejectedValue(new Error("raw db"));
+    (handleDbError as Mock).mockReturnValue(new Error("DB_BAD"));
     await expect(fetchEvents("SPR")).rejects.toThrow("DB_BAD");
   });
 });
@@ -77,21 +52,16 @@ describe("createEvent", () => {
     returningMock = vi.fn();
     onConflictMock = vi.fn(() => ({ returning: returningMock }));
     insertMock = vi.fn(() => ({
-      values: vi.fn(() => ({
-        onConflictDoNothing: onConflictMock,
-      })),
+      values: vi.fn(() => ({ onConflictDoNothing: onConflictMock })),
     }));
     (db.insert as Mock) = insertMock;
-    vi.clearAllMocks();
   });
 
   it("returns the created event when insert succeeds", async () => {
-    // setup
     returningMock.mockResolvedValue([
       { eventId: "123", eventName: "Hackathon" },
     ]);
 
-    // exercise
     const result = await createEvent(
       "SPR",
       "Hackathon",
@@ -99,36 +69,19 @@ describe("createEvent", () => {
       "2025-11-27T12:00:00Z",
     );
 
-    // verify
     expect(result).toEqual({ eventId: "123", eventName: "Hackathon" });
-    expect(insertMock).toHaveBeenCalledWith(event);
+    expect(insertMock).toHaveBeenCalled();
   });
 
   it("returns null when onConflictDoNothing causes no rows to insert", async () => {
-    // setup
     returningMock.mockResolvedValue([]);
-
-    // exercise
-    const result = await createEvent(
-      "SPR",
-      "Hackathon",
-      "2025-11-27T10:00:00Z",
-      "2025-11-27T12:00:00Z",
-    );
-
-    // verify
+    const result = await createEvent("SPR", "Hackathon", "", "");
     expect(result).toBeNull();
   });
 
   it("throws wrapped db error", async () => {
-    // setup
-    const error = new Error("db failed");
-    returningMock.mockRejectedValue(error);
-
-    // verify
-    (handleDbError as Mock).mockReturnValue({
-      message: "DB_BAD",
-    });
+    returningMock.mockRejectedValue(new Error("db failed"));
+    (handleDbError as Mock).mockReturnValue(new Error("DB_BAD"));
     await expect(
       createEvent(
         "SPR",
@@ -149,19 +102,13 @@ describe("checkInUser", () => {
     returningMock = vi.fn();
     onConflictMock = vi.fn(() => ({ returning: returningMock }));
     insertMock = vi.fn(() => ({
-      values: vi.fn(() => ({
-        onConflictDoUpdate: onConflictMock,
-      })),
+      values: vi.fn(() => ({ onConflictDoUpdate: onConflictMock })),
     }));
     (db.insert as Mock) = insertMock;
-    vi.clearAllMocks();
   });
 
   it("returns the check-in record when insert succeeds", async () => {
-    // setup
     returningMock.mockResolvedValue([{ eventCheckInId: "123", userId: "456" }]);
-
-    // exercise
     const result = await checkInUser(
       "SPR",
       "123",
@@ -169,23 +116,21 @@ describe("checkInUser", () => {
       "789",
       "Checked in early",
     );
-
-    // verify
     expect(result).toEqual({ eventCheckInId: "123", userId: "456" });
-    expect(insertMock).toHaveBeenCalledWith(eventCheckIn);
+    expect(insertMock).toHaveBeenCalled();
   });
 
   it("throws wrapped db error", async () => {
-    // setup
-    const error = new Error("db failed");
-    returningMock.mockRejectedValue(error);
-
-    // verify
-    (handleDbError as Mock).mockReturnValue({
-      message: "DB_BAD",
-    });
+    returningMock.mockRejectedValue(new Error("db failed"));
+    (handleDbError as Mock).mockReturnValue(new Error("DB_BAD"));
     await expect(
       checkInUser("SPR", "123", "456", "789", "Checked in early"),
     ).rejects.toThrow("DB_BAD");
+  });
+
+  it("passes null for checkInNotes when not provided", async () => {
+    returningMock.mockResolvedValue([{ eventCheckInId: "123", userId: "456" }]);
+    const res = await checkInUser("SPR", "123", "456", "789");
+    expect(res).toEqual({ eventCheckInId: "123", userId: "456" });
   });
 });

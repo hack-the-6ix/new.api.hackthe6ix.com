@@ -7,9 +7,8 @@ const api = new Hono();
 
 api.route("/", seasonsRoute);
 api.route("/", formResponsesRoute);
+api.route("/", eventsRoute);
 
 api.get("/", (c) => c.json({ message: "Hello HT6 API!" }));
 
 export default api;
-
-api.route("/", eventsRoute);

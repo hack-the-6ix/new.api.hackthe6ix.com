@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { eventCheckIn } from "@/db/schema";
+import { eventCheckIn } from "@/db/schema/eventCheckIn";
 import { event } from "@/db/schema/event";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { eq, sql } from "drizzle-orm";
@@ -11,9 +11,8 @@ export const fetchEvents = async (seasonCode: string) => {
       .from(event)
       .where(eq(event.seasonCode, seasonCode));
     return result;
-  } catch (error: unknown) {
-    const dbError = handleDbError(error);
-    throw new Error(dbError.message);
+  } catch (error) {
+    throw handleDbError(error);
   }
 };
 
@@ -36,9 +35,8 @@ export const createEvent = async (
       .returning();
 
     return result.length > 0 ? result[0] : null;
-  } catch (error: unknown) {
-    const dbError = handleDbError(error);
-    throw new Error(dbError.message);
+  } catch (error) {
+    throw handleDbError(error);
   }
 };
 
@@ -70,8 +68,7 @@ export const checkInUser = async (
       .returning();
 
     return result.length > 0 ? result[0] : null;
-  } catch (error: unknown) {
-    const dbError = handleDbError(error);
-    throw new Error(dbError.message);
+  } catch (error) {
+    throw handleDbError(error);
   }
 };
