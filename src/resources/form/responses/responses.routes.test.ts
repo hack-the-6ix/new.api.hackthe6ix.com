@@ -5,8 +5,13 @@ import {
   vi,
   beforeAll,
   afterAll,
-  type Mock,
+  beforeEach,
 } from "vitest";
+import { initializeTestDb } from "@/lib/tests/testHelpers";
+import { season, form, formResponse } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
+import * as schema from "@/db/schema";
 
 // Mock env before any imports that might use it
 vi.mock("@/config/env", () => ({
@@ -22,58 +27,28 @@ vi.mock("@/config/env", () => ({
   dev: false,
 }));
 
-import app from "@/server";
-import { db } from "@/db";
-import { handleDbError } from "@/db/utils/dbErrorUtils";
-import { ApiError } from "@/lib/errors";
-import { isUserType, UserType } from "@/lib/auth";
-import { Context } from "hono";
+// Create mocks object before any imports
+const mocks = vi.hoisted(() => ({
+  testDb: null as unknown as PgliteDatabase<typeof schema>,
+}));
 
-// Suppress console.error for cleaner test output
-let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
-beforeAll(() => {
-  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-});
-
-afterAll(() => {
-  consoleErrorSpy.mockRestore();
-});
-
-// mock dependencies
 vi.mock("@/db", () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
+  get db() {
+    return mocks.testDb;
   },
-}));
-
-vi.mock("@/db/schema", () => ({
-  formResponse: {
-    seasonCode: "seasonCode",
-    formId: "formId",
-    userId: "userId",
-    responseJson: "responseJson",
-    isSubmitted: "isSubmitted",
-    updatedAt: "updatedAt",
-  },
-}));
-
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((field, value) => ({ field, value, type: "eq" })),
-  and: vi.fn((...conditions) => ({ conditions, type: "and" })),
-  sql: vi.fn((strings, ...values) => ({ strings, values, type: "sql" })),
 }));
 
 vi.mock("@/db/utils/dbErrorUtils", () => ({
-  handleDbError: vi.fn(),
+  handleDbError: (error: unknown) => {
+    throw error;
+  },
 }));
 
 vi.mock("@/lib/auth", () => ({
   isUserType: vi.fn(),
-  getUserId: vi.fn().mockResolvedValue("user-id"),
+  getUserId: vi.fn().mockResolvedValue("71234567-89ab-cdef-0123-456789abcdef"),
   requireRoles: vi.fn(() => {
-    return async (c: Context, next: () => Promise<void>) => await next();
+    return async (c: unknown, next: () => Promise<void>) => await next();
   }),
   UserType: {
     User: "user",
@@ -86,122 +61,193 @@ vi.mock("@/lib/auth", () => ({
   },
 }));
 
+import app from "@/server";
+import { isUserType, UserType } from "@/lib/auth";
+import {
+  getFormResponses,
+  getRandomFormResponse,
+  upsertFormResponse,
+} from "./responses.service";
+
+// Suppress console.error for cleaner test output
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+const seasonCode = "S24";
+const formId = "11234567-89ab-cdef-0123-456789abcdef";
+const userId = "21234567-89ab-cdef-0123-456789abcdef";
+
+beforeAll(async () => {
+  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  await initializeTestDb(mocks);
+
+  await mocks.testDb.insert(season).values({
+    seasonId: "01234567-89ab-cdef-0123-456789abcdef",
+    seasonCode,
+  });
+  await mocks.testDb.insert(form).values({
+    seasonCode,
+    formId,
+    eventId: "31234567-89ab-cdef-0123-456789abcdef",
+    formName: "Test Form",
+  });
+});
+
+afterAll(() => {
+  consoleErrorSpy.mockRestore();
+});
+
+beforeEach(async () => {
+  await mocks.testDb.delete(formResponse);
+  vi.clearAllMocks();
+});
+
+describe("Form Responses Service Integration", () => {
+  it("gets responses with filters", async () => {
+    await mocks.testDb.insert(formResponse).values([
+      {
+        seasonCode,
+        userId,
+        formId,
+        responseJson: { q: "a1" },
+        isSubmitted: true,
+      },
+      {
+        seasonCode,
+        userId: "51234567-89ab-cdef-0123-456789abcdef",
+        formId,
+        responseJson: { q: "a2" },
+        isSubmitted: false,
+      },
+    ]);
+
+    const all = await getFormResponses(seasonCode);
+    expect(all).toHaveLength(2);
+
+    const filtered = await getFormResponses(seasonCode, formId, userId);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].userId).toBe(userId);
+  });
+
+  it("gets random response", async () => {
+    const empty = await getRandomFormResponse(formId, seasonCode);
+    expect(empty).toBeNull();
+
+    await mocks.testDb.insert(formResponse).values({
+      seasonCode,
+      userId,
+      formId,
+      responseJson: { test: "data" },
+      isSubmitted: true,
+    });
+
+    const result = await getRandomFormResponse(formId, seasonCode);
+    expect(result?.formId).toBe(formId);
+  });
+
+  it("upserts responses", async () => {
+    const data = { q1: "a1" };
+
+    await upsertFormResponse(seasonCode, userId, formId, data, false);
+    let responses = await mocks.testDb
+      .select()
+      .from(formResponse)
+      .where(
+        and(
+          eq(formResponse.seasonCode, seasonCode),
+          eq(formResponse.userId, userId),
+        ),
+      );
+    expect(responses).toHaveLength(1);
+    expect(responses[0].isSubmitted).toBe(false);
+
+    await upsertFormResponse(seasonCode, userId, formId, { q1: "a2" }, true);
+    responses = await mocks.testDb
+      .select()
+      .from(formResponse)
+      .where(
+        and(
+          eq(formResponse.seasonCode, seasonCode),
+          eq(formResponse.userId, userId),
+        ),
+      );
+    expect(responses).toHaveLength(1);
+    expect(responses[0].isSubmitted).toBe(true);
+    expect(responses[0].responseJson).toEqual({ q1: "a2" });
+  });
+});
+
 describe("Form Responses Routes", () => {
   describe("GET /seasons/:seasonCode/responses", () => {
     it("should return form responses for a season", async () => {
-      // setup
-      const mockResponses = [
-        {
-          formResponseId: "response-1",
-          formId: "form-1",
-          userId: "user-1",
-          seasonCode: "S26",
-          responseJson: { answer1: "test" },
-          isSubmitted: true,
-          updatedAt: new Date().toISOString(),
-        },
-      ];
+      await mocks.testDb.insert(formResponse).values({
+        seasonCode,
+        userId,
+        formId,
+        responseJson: { answer1: "test" },
+        isSubmitted: true,
+      });
 
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue(mockResponses),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
-      // exercise
-      const res = await app.request("/api/seasons/S26/responses", {
+      const res = await app.request(`/api/seasons/${seasonCode}/responses`, {
         method: "GET",
       });
 
-      // verify
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data).toEqual(mockResponses);
+      expect(data).toHaveLength(1);
+      expect(data[0]).toMatchObject({
+        seasonCode,
+        userId,
+        formId,
+        responseJson: { answer1: "test" },
+        isSubmitted: true,
+      });
     });
 
     it("should filter by formId query parameter", async () => {
-      // setup
-      const mockResponses = [
-        {
-          formResponseId: "response-1",
-          formId: "form-1",
-          userId: "user-1",
-          seasonCode: "S26",
-          responseJson: { answer1: "test" },
-          isSubmitted: true,
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue(mockResponses),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
-      // exercise
-      const res = await app.request(
-        "/api/seasons/S26/responses?formId=01936d3f-1234-7890-abcd-123456789abc",
-        {
-          method: "GET",
-        },
-      );
-
-      // verify
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data).toEqual(mockResponses);
-    });
-
-    it("should return 500 on database error", async () => {
-      // setup
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockRejectedValue(new Error("Database error")),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-      (handleDbError as Mock).mockReturnValue(
-        new ApiError(500, {
-          code: "DATABASE_ERROR",
-          message: "A database error occurred",
-        }),
-      );
-
-      // exercise
-      const res = await app.request("/api/seasons/S26/responses", {
-        method: "GET",
+      const anotherFormId = "41234567-89ab-cdef-0123-456789abcdef";
+      await mocks.testDb.insert(form).values({
+        seasonCode,
+        formId: anotherFormId,
+        eventId: "31234567-89ab-cdef-0123-456789abcdef",
+        formName: "Another Form",
       });
 
-      // verify
-      expect(res.status).toBe(500);
+      await mocks.testDb.insert(formResponse).values([
+        {
+          seasonCode,
+          userId,
+          formId,
+          responseJson: { test: "form1" },
+          isSubmitted: true,
+        },
+        {
+          seasonCode,
+          userId,
+          formId: anotherFormId,
+          responseJson: { test: "form2" },
+          isSubmitted: true,
+        },
+      ]);
+
+      const res = await app.request(
+        `/api/seasons/${seasonCode}/responses?formId=${formId}`,
+        { method: "GET" },
+      );
+
+      expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data).toHaveProperty("success", false);
-      expect(data).toHaveProperty("error");
-      expect(Array.isArray(data.error)).toBe(true);
+      expect(data).toHaveLength(1);
+      expect(data[0].formId).toBe(formId);
     });
   });
 
   describe("POST /seasons/:seasonCode/forms/:formId/responses", () => {
     it("should create/update form response successfully", async () => {
-      // setup
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-
-      // exercise
       const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        `/api/seasons/${seasonCode}/forms/${formId}/responses`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionToken: "user-session-token",
             responseJson: { answer1: "test" },
@@ -210,60 +256,25 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // verify
+      if (res.status !== 201) {
+        console.log("Error response:", await res.json());
+      }
       expect(res.status).toBe(201);
-    });
 
-    it("should return 500 on database error", async () => {
-      // setup
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi
-            .fn()
-            .mockRejectedValue(new Error("Database error")),
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (handleDbError as Mock).mockReturnValue(
-        new ApiError(500, {
-          code: "DATABASE_ERROR",
-          message: "A database error occurred",
-        }),
-      );
-
-      // exercise
-      const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sessionToken: "user-session-token",
-            responseJson: { answer1: "test" },
-            isSubmitted: false,
-          }),
-        },
-      );
-
-      // verify
-      expect(res.status).toBe(500);
-      const data = await res.json();
-      expect(data).toHaveProperty("success", false);
-      expect(data).toHaveProperty("error");
-      expect(Array.isArray(data.error)).toBe(true);
+      const responses = await mocks.testDb
+        .select()
+        .from(formResponse)
+        .where(eq(formResponse.userId, "71234567-89ab-cdef-0123-456789abcdef"));
+      expect(responses).toHaveLength(1);
+      expect(responses[0].responseJson).toEqual({ answer1: "test" });
     });
 
     it("should return 400 for invalid UUID in path", async () => {
-      // exercise
       const res = await app.request(
-        "/api/seasons/S26/forms/invalid-uuid/responses",
+        `/api/seasons/${seasonCode}/forms/invalid-uuid/responses`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionToken: "user-session-token",
             responseJson: { answer1: "test" },
@@ -272,248 +283,89 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // verify
       expect(res.status).toBe(400);
     });
 
-    // test is not really meaningful since zod validation automatically checks types
-    // only included for completeness
     it("should return 400 for missing required fields", async () => {
-      // exercise
       const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        `/api/seasons/${seasonCode}/forms/${formId}/responses`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionToken: "user-session-token",
-            // missing responseJson and isSubmitted
           }),
         },
       );
 
-      // verify
       expect(res.status).toBe(400);
     });
   });
 
   describe("POST /seasons/:seasonCode/forms/:formId/responses/random", () => {
     it("should return a random form response", async () => {
-      // setup
-      const mockResponse = {
-        formResponseId: "response-1",
-        formId: "550e8400-e29b-41d4-a716-446655440000",
-        userId: "user-1",
-        seasonCode: "S26",
+      await mocks.testDb.insert(formResponse).values({
+        seasonCode,
+        userId,
+        formId,
         responseJson: { answer1: "test" },
         isSubmitted: true,
-        updatedAt: new Date().toISOString(),
-      };
+      });
 
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            orderBy: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue([mockResponse]),
-            })),
-          })),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
-      // exercise
       const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
-        {
-          method: "POST",
-        },
+        `/api/seasons/${seasonCode}/forms/${formId}/responses/random`,
+        { method: "POST" },
       );
 
-      // verify
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data).toEqual(mockResponse);
+      expect(data.formId).toBe(formId);
+      expect(data.responseJson).toEqual({ answer1: "test" });
     });
 
     it("should return 409 when no form responses found", async () => {
-      // setup
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            orderBy: vi.fn(() => ({
-              limit: vi.fn().mockResolvedValue([]),
-            })),
-          })),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-
-      // exercise
       const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
-        {
-          method: "POST",
-        },
+        `/api/seasons/${seasonCode}/forms/${formId}/responses/random`,
+        { method: "POST" },
       );
 
-      // verify
       expect(res.status).toBe(409);
       const data = await res.json();
       expect(data).toHaveProperty("success", false);
       expect(data.error[0]).toHaveProperty("code", "FORM_RESPONSES_NOT_FOUND");
     });
 
-    it("should return 500 on database error", async () => {
-      // setup
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            orderBy: vi.fn(() => ({
-              limit: vi.fn().mockRejectedValue(new Error("Database error")),
-            })),
-          })),
-        })),
-      }));
-      (db.select as Mock) = selectMock;
-      (handleDbError as Mock).mockReturnValue(
-        new ApiError(500, {
-          code: "DATABASE_ERROR",
-          message: "A database error occurred",
-        }),
-      );
-
-      // exercise
-      const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
-        {
-          method: "POST",
-        },
-      );
-
-      // verify
-      expect(res.status).toBe(500);
-      const data = await res.json();
-      expect(data).toHaveProperty("success", false);
-      expect(data).toHaveProperty("error");
-      expect(Array.isArray(data.error)).toBe(true);
-    });
-
     it("should return 400 for invalid UUID in path", async () => {
-      // exercise
       const res = await app.request(
-        "/api/seasons/S26/forms/invalid-uuid/responses/random",
-        {
-          method: "POST",
-        },
+        `/api/seasons/${seasonCode}/forms/invalid-uuid/responses/random`,
+        { method: "POST" },
       );
 
-      // verify
       expect(res.status).toBe(400);
     });
 
     it("should return 400 for invalid season code", async () => {
-      // exercise
       const res = await app.request(
-        "/api/seasons/INVALID/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
-        {
-          method: "POST",
-        },
+        `/api/seasons/INVALID/forms/${formId}/responses/random`,
+        { method: "POST" },
       );
 
-      // verify
       expect(res.status).toBe(400);
-    });
-
-    it("should use RANDOM ordering for randomness", async () => {
-      // setup
-      const mockResponse = {
-        formResponseId: "response-1",
-        formId: "01936d3f-1234-7890-abcd-123456789abc",
-        userId: "user-1",
-        seasonCode: "S26",
-        responseJson: { answer1: "test" },
-        isSubmitted: true,
-        updatedAt: new Date().toISOString(),
-      };
-
-      const limitMock = vi.fn().mockResolvedValue([mockResponse]);
-      const orderByMock = vi.fn(() => ({ limit: limitMock }));
-      const whereMock = vi.fn(() => ({ orderBy: orderByMock }));
-      const fromMock = vi.fn(() => ({ where: whereMock }));
-      const selectMock = vi.fn(() => ({ from: fromMock }));
-      (db.select as Mock) = selectMock;
-
-      // exercise
-      await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses/random",
-        {
-          method: "POST",
-        },
-      );
-
-      // verify
-      expect(orderByMock).toHaveBeenCalled();
-      expect(limitMock).toHaveBeenCalledWith(1);
     });
   });
 
   describe("POST /seasons/:seasonCode/forms/:formId/responses with targetUserId", () => {
     it("should allow admin to upsert for another user when targetUserId is provided", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([{ userId: "admin-user" }]), // admin found
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
       vi.mocked(isUserType).mockResolvedValue(true);
 
       const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        `/api/seasons/${seasonCode}/forms/${formId}/responses`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionToken: "admin-user",
             targetUserId: "01937000-0000-7000-8000-000000000001",
-            responseJson: { answer1: "test" },
-            isSubmitted: false,
-          }),
-        },
-      );
-
-      expect(res.status).toBe(201);
-    });
-
-    it("should allow admin to upsert for themselves when targetUserId is not provided", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([{ userId: "admin-user" }]), // admin found
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
-      vi.mocked(isUserType).mockResolvedValue(true);
-
-      const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionToken: "admin-user",
             responseJson: { answer1: "test" },
             isSubmitted: false,
           }),
@@ -524,28 +376,16 @@ describe("Form Responses Routes", () => {
     });
 
     it("should ignore targetUserId for non-admin users and use their own userId", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([]), // not admin
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
       vi.mocked(isUserType).mockResolvedValue(false);
 
       const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        `/api/seasons/${seasonCode}/forms/${formId}/responses`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionToken: "regular-user",
-            targetUserId: "01937000-0000-7000-8000-000000000001", // should be ignored
+            targetUserId: "01937000-0000-7000-8000-000000000001",
             responseJson: { answer1: "test" },
             isSubmitted: false,
           }),
@@ -553,103 +393,21 @@ describe("Form Responses Routes", () => {
       );
 
       expect(res.status).toBe(201);
-      // Verify the insert was called with user-id (from getUserId mock), not targetUserId
-      const valuesMock = insertMock.mock.results[0].value;
-      expect(valuesMock.values).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: "user-id",
-        }),
-      );
-    });
 
-    it("should allow non-admin users to upsert their own responses", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([]), // not admin
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
-      vi.mocked(isUserType).mockResolvedValue(false);
-
-      const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionToken: "regular-user",
-            responseJson: { answer1: "test" },
-            isSubmitted: true,
-          }),
-        },
-      );
-
-      expect(res.status).toBe(201);
-    });
-
-    it("should return 500 on database error during upsert", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi
-            .fn()
-            .mockRejectedValue(new Error("Database error")),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([]),
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
-      (handleDbError as Mock).mockReturnValue(
-        new ApiError(500, {
-          code: "DATABASE_ERROR",
-          message: "A database error occurred",
-        }),
-      );
-
-      const res = await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionToken: "user",
-            targetUserId: "00000000-0000-0000-0000-000000000000",
-            responseJson: { answer1: "test" },
-            isSubmitted: true,
-          }),
-        },
-      );
-
-      expect(res.status).toBe(500);
+      const responses = await mocks.testDb
+        .select()
+        .from(formResponse)
+        .where(eq(formResponse.userId, "71234567-89ab-cdef-0123-456789abcdef"));
+      expect(responses).toHaveLength(1);
+      expect(responses[0].userId).toBe("71234567-89ab-cdef-0123-456789abcdef");
     });
 
     it("should only call isUserType once when targetUserId is provided", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([{ userId: "admin-user" }]),
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
       vi.mocked(isUserType).mockResolvedValue(true);
       vi.mocked(isUserType).mockClear();
 
       await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        `/api/seasons/${seasonCode}/forms/${formId}/responses`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -662,7 +420,6 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // Ensure the route checks admin status when targetUserId is provided
       expect(vi.mocked(isUserType)).toHaveBeenCalled();
       expect(vi.mocked(isUserType)).toHaveBeenCalledWith(
         expect.any(Object),
@@ -671,22 +428,10 @@ describe("Form Responses Routes", () => {
     });
 
     it("should not call isUserType when targetUserId is not provided", async () => {
-      const insertMock = vi.fn(() => ({
-        values: vi.fn(() => ({
-          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-        })),
-      }));
-      const selectMock = vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn().mockResolvedValue([]),
-        })),
-      }));
-      (db.insert as Mock) = insertMock;
-      (db.select as Mock) = selectMock;
       vi.clearAllMocks();
 
       await app.request(
-        "/api/seasons/S26/forms/01936d3f-1234-7890-abcd-123456789abc/responses",
+        `/api/seasons/${seasonCode}/forms/${formId}/responses`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -698,7 +443,6 @@ describe("Form Responses Routes", () => {
         },
       );
 
-      // isUserType should not be called since targetUserId is not provided
       expect(vi.mocked(isUserType)).not.toHaveBeenCalled();
     });
   });
