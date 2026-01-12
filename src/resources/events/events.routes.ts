@@ -78,8 +78,8 @@ eventsRoute.post(
     const result = await createEvent(
       seasonCode,
       body.eventName,
-      body.startTime,
-      body.endTime,
+      new Date(body.startTime),
+      new Date(body.endTime),
     );
 
     if (!result) {
