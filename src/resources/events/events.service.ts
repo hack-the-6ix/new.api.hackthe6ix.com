@@ -19,8 +19,8 @@ export const fetchEvents = async (seasonCode: string) => {
 export const createEvent = async (
   seasonCode: string,
   eventName: string,
-  startTime: string,
-  endTime: string,
+  startTime: Date | null,
+  endTime: Date | null,
 ) => {
   try {
     const result = await db
@@ -28,8 +28,8 @@ export const createEvent = async (
       .values({
         seasonCode,
         eventName,
-        startTime: startTime ? new Date(startTime) : null,
-        endTime: endTime ? new Date(endTime) : null,
+        startTime: startTime ?? null,
+        endTime: endTime ?? null,
       })
       .onConflictDoNothing()
       .returning();
