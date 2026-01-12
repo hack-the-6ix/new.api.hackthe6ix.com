@@ -1,10 +1,15 @@
 import { Context } from "hono";
-import { afterAll, beforeAll, describe, expect, it, Mock, vi } from "vitest";
 import {
-  fetchEvents,
-  createEvent,
-  checkInUser,
-} from "@/resources/events/events.service";
+  afterAll,
+  beforeAll,
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import * as svc from "@/resources/events/events.service";
+type CheckInReturn = Awaited<ReturnType<(typeof svc)["checkInUser"]>>;
 import app from "@/server";
 
 vi.mock("@/config/env", () => ({
@@ -30,6 +35,10 @@ afterAll(() => {
   consoleErrorSpy.mockRestore();
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 vi.mock("@/db", () => ({
   db: {
     select: vi.fn(),
@@ -45,12 +54,6 @@ vi.mock("@/db/schema", () => ({
     startTime: "1:00",
     endTime: "2:00",
   },
-}));
-
-vi.mock("@/resources/events/events.service", () => ({
-  fetchEvents: vi.fn(),
-  createEvent: vi.fn(),
-  checkInUser: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -80,17 +83,33 @@ vi.mock("@/lib/auth", () => ({
 describe("Events Routes", () => {
   describe("GET /api/seasons/:seasonCode/events", () => {
     it("returns events list", async () => {
-      (fetchEvents as Mock).mockResolvedValue([{ eventId: "e1" }]);
+      vi.spyOn(svc, "fetchEvents").mockResolvedValue([
+        {
+          seasonCode: "S26",
+          eventId: "e1",
+          eventName: "Test Event",
+          startTime: null,
+          endTime: null,
+        },
+      ]);
 
       const res = await app.request("/api/seasons/S26/events");
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([{ eventId: "e1" }]);
-      expect(fetchEvents).toHaveBeenCalledWith("S26");
+      expect(await res.json()).toEqual([
+        {
+          seasonCode: "S26",
+          eventId: "e1",
+          eventName: "Test Event",
+          startTime: null,
+          endTime: null,
+        },
+      ]);
+      expect(svc.fetchEvents).toHaveBeenCalledWith("S26");
     });
 
     it("returns 500 when service throws", async () => {
-      (fetchEvents as Mock).mockRejectedValue(new Error("boom"));
+      vi.spyOn(svc, "fetchEvents").mockRejectedValue(new Error("boom"));
       const res = await app.request("/api/seasons/S26/events");
       expect(res.status).toBe(500);
     });
@@ -98,8 +117,14 @@ describe("Events Routes", () => {
 
   describe("POST /api/seasons/:seasonCode/events", () => {
     it("creates event successfully", async () => {
-      const mockEvent = { eventId: "e1", eventName: "Hack" };
-      (createEvent as Mock).mockResolvedValue(mockEvent);
+      const mockEvent = {
+        seasonCode: "S26",
+        eventId: "e1",
+        eventName: "Hack",
+        startTime: null,
+        endTime: null,
+      };
+      vi.spyOn(svc, "createEvent").mockResolvedValue(mockEvent);
 
       const res = await app.request("/api/seasons/S26/events", {
         method: "POST",
@@ -113,11 +138,11 @@ describe("Events Routes", () => {
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockEvent);
-      expect(createEvent).toHaveBeenCalled();
+      expect(svc.createEvent).toHaveBeenCalled();
     });
 
     it("returns 409 when event already exists", async () => {
-      (createEvent as Mock).mockResolvedValue(null);
+      vi.spyOn(svc, "createEvent").mockResolvedValue(null);
       const res = await app.request("/api/seasons/S26/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,8 +160,15 @@ describe("Events Routes", () => {
 
   describe("POST /api/seasons/:seasonCode/events/:eventId/check-in", () => {
     it("checks in a user successfully", async () => {
-      const mockCheckIn = { eventCheckInId: "c1", userId: "u1" };
-      (checkInUser as Mock).mockResolvedValue(mockCheckIn);
+      const mockCheckIn: CheckInReturn = {
+        seasonCode: "S26",
+        eventId: "e1",
+        userId: "u1",
+        checkInAuthor: "550e8400-e29b-41d4-a716-446655440000",
+        checkInNotes: null,
+        createdAt: new Date(),
+      };
+      vi.spyOn(svc, "checkInUser").mockResolvedValue(mockCheckIn);
 
       const res = await app.request("/api/seasons/S26/events/e1/check-in", {
         method: "POST",
@@ -146,9 +178,12 @@ describe("Events Routes", () => {
           checkInAuthor: "550e8400-e29b-41d4-a716-446655440000",
         }),
       });
-
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockCheckIn);
+      const body = await res.json();
+      expect(body).toEqual({
+        ...mockCheckIn,
+        createdAt: mockCheckIn.createdAt.toISOString(),
+      });
     });
 
     it("returns 400 for invalid body", async () => {

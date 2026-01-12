@@ -1,11 +1,4 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-import {
-  fetchEvents,
-  createEvent,
-  checkInUser,
-} from "@/resources/events/events.service";
-import { db } from "@/db";
-import { handleDbError } from "@/db/utils/dbErrorUtils";
 
 vi.mock("@/db", () => ({
   db: {
@@ -15,6 +8,14 @@ vi.mock("@/db", () => ({
 }));
 
 vi.mock("@/db/utils/dbErrorUtils", () => ({ handleDbError: vi.fn() }));
+
+import {
+  fetchEvents,
+  createEvent,
+  checkInUser,
+} from "@/resources/events/events.service";
+import { db } from "@/db";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 
 describe("fetchEvents", () => {
   let mockSelect: Mock;
@@ -65,8 +66,8 @@ describe("createEvent", () => {
     const result = await createEvent(
       "SPR",
       "Hackathon",
-      "2025-11-27T10:00:00Z",
-      "2025-11-27T12:00:00Z",
+      new Date("2025-11-27T10:00:00Z"),
+      new Date("2025-11-27T12:00:00Z"),
     );
 
     expect(result).toEqual({ eventId: "123", eventName: "Hackathon" });
@@ -75,7 +76,7 @@ describe("createEvent", () => {
 
   it("returns null when onConflictDoNothing causes no rows to insert", async () => {
     returningMock.mockResolvedValue([]);
-    const result = await createEvent("SPR", "Hackathon", "", "");
+    const result = await createEvent("SPR", "Hackathon", null, null);
     expect(result).toBeNull();
   });
 
@@ -86,8 +87,8 @@ describe("createEvent", () => {
       createEvent(
         "SPR",
         "Hackathon",
-        "2025-11-27T10:00:00Z",
-        "2025-11-27T12:00:00Z",
+        new Date("2025-11-27T10:00:00Z"),
+        new Date("2025-11-27T12:00:00Z"),
       ),
     ).rejects.toThrow("DB_BAD");
   });
