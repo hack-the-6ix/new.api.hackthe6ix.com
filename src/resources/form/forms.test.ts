@@ -104,32 +104,26 @@ beforeEach(() => {
 describe("forms.service", () => {
   describe("createForm", () => {
     it("creates a form successfully without questions", async () => {
-      const returningMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID,
-          seasonCode: "S26",
-          openTime: null,
-          closeTime: null,
-          tags: ["registration"],
-        },
-      ]);
+      const mockForm = {
+        formId: FORM_ID,
+        seasonCode: "S26",
+        openTime: null,
+        closeTime: null,
+        tags: ["registration"],
+      };
 
+      const returningMock = vi.fn().mockResolvedValue([mockForm]);
       const valuesMock = vi.fn(() => ({ returning: returningMock }));
       (db.insert as Mock).mockReturnValue({ values: valuesMock });
 
       const result = await createForm({
-        seasonCode: "S26",
-        tags: ["registration"],
-      });
-
-      expect(result).toEqual({
-        formId: FORM_ID,
         seasonCode: "S26",
         openTime: null,
         closeTime: null,
         tags: ["registration"],
       });
 
+      expect(result).toEqual(mockForm);
       expect(db.insert).toHaveBeenCalledWith(form);
       expect(valuesMock).toHaveBeenCalledWith({
         seasonCode: "S26",
@@ -164,6 +158,8 @@ describe("forms.service", () => {
 
       const result = await createForm({
         seasonCode: "S26",
+        openTime: null,
+        closeTime: null,
         questions: [
           { formQuestionId: "q1", questionType: "text", tags: ["required"] },
           { formQuestionId: "q2", questionType: "number" },
@@ -197,9 +193,9 @@ describe("forms.service", () => {
       const valuesMock = vi.fn(() => ({ returning: returningMock }));
       (db.insert as Mock).mockReturnValue({ values: valuesMock });
 
-      await expect(createForm({ seasonCode: "S26" })).rejects.toBeInstanceOf(
-        ApiError,
-      );
+      await expect(
+        createForm({ seasonCode: "S26", openTime: null, closeTime: null }),
+      ).rejects.toBeInstanceOf(ApiError);
     });
   });
 
@@ -211,7 +207,13 @@ describe("forms.service", () => {
       (db.select as Mock).mockReturnValue({ from: fromMock });
 
       await expect(
-        updateForm({ seasonCode: "S26", formId: FORM_ID, tags: ["x"] }),
+        updateForm({
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          formId: FORM_ID,
+          tags: ["x"],
+        }),
       ).rejects.toMatchObject({
         status: 404,
       });
@@ -239,6 +241,8 @@ describe("forms.service", () => {
 
       const result = await updateForm({
         seasonCode: "S26",
+        openTime: null,
+        closeTime: null,
         formId: FORM_ID,
         tags: ["updated"],
       });
@@ -289,6 +293,8 @@ describe("forms.service", () => {
 
       await updateForm({
         seasonCode: "S26",
+        openTime: null,
+        closeTime: null,
         formId: FORM_ID,
         questions: [{ formQuestionId: "q1", questionType: "text" }],
       });

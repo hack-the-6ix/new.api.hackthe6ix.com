@@ -12,8 +12,8 @@ export interface CreateFormQuestionInput {
 
 export interface CreateFormInput {
   seasonCode: string;
-  openTime?: Date | null;
-  closeTime?: Date | null;
+  openTime: Date | null;
+  closeTime: Date | null;
   tags?: string[];
   questions?: CreateFormQuestionInput[];
 }
@@ -25,8 +25,8 @@ export const createForm = async (input: CreateFormInput) => {
         .insert(form)
         .values({
           seasonCode: input.seasonCode,
-          openTime: input.openTime ?? null,
-          closeTime: input.closeTime ?? null,
+          openTime: input.openTime,
+          closeTime: input.closeTime,
           tags: input.tags ?? [],
         })
         .returning();
@@ -53,8 +53,8 @@ export const createForm = async (input: CreateFormInput) => {
 export interface UpdateFormInput {
   seasonCode: string;
   formId: string;
-  openTime?: Date | null;
-  closeTime?: Date | null;
+  openTime: Date | null;
+  closeTime: Date | null;
   tags?: string[];
   /**
    * Optional:
@@ -89,8 +89,8 @@ export const updateForm = async (input: UpdateFormInput) => {
       const [updated] = await tx
         .update(form)
         .set({
-          openTime: input.openTime ?? null,
-          closeTime: input.closeTime ?? null,
+          openTime: input.openTime,
+          closeTime: input.closeTime,
           tags: input.tags ?? [],
         })
         .where(
@@ -191,8 +191,8 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
         .insert(form)
         .values({
           seasonCode: src.seasonCode,
-          openTime: src.openTime ?? null,
-          closeTime: src.closeTime ?? null,
+          openTime: src.openTime,
+          closeTime: src.closeTime,
           tags: src.tags ?? [],
         })
         .returning();
