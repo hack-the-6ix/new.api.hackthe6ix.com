@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - daniel/build-and-push-docker
 
 jobs:
   build:
@@ -27,12 +26,4 @@ jobs:
         with:
           push: true
           tags: ${{ vars.REGISTRY_REPO_PATH }}:latest
-
-      - name: Build and Push (Tagged with commit SHA)
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          no-cache: true
-          labels: quay.expires-after=30d
-          tags: ${{ vars.REGISTRY_REPO_PATH }}:${{ github.sha }}
+                # ${{ vars.REGISTRY_REPO_PATH }}:${{ github.sha }}
