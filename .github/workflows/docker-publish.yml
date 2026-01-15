@@ -26,4 +26,4 @@ jobs:
         with:
           push: true
           tags: ${{ vars.REGISTRY_REPO_PATH }}:latest
-                # ${{ vars.REGISTRY_REPO_PATH }}:${{ github.sha }}
+            ${{ vars.REGISTRY_REPO_PATH }}:${{ github.sha }}

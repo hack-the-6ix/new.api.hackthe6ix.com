@@ -44,7 +44,7 @@
     "vitest": "^4.0.8"
   },
   "lint-staged": {
-    "*.{js,ts,json}": [
+    "*": [
       "eslint --fix",
       "prettier . --write"
     ]
