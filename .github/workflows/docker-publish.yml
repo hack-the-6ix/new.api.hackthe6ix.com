@@ -25,6 +25,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags:
-            ${{ vars.REGISTRY_REPO_PATH }}:latest
+          tags: ${{ vars.REGISTRY_REPO_PATH }}:latest
             ${{ vars.REGISTRY_REPO_PATH }}:${{ github.sha }}
