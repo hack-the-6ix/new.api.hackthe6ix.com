@@ -1,4 +1,4 @@
-FROM oven/bun:canary-alpine AS builder
+FROM oven/bun:alpine AS builder
 WORKDIR /app
 
 COPY . .
@@ -6,7 +6,7 @@ COPY . .
 RUN bun install --frozen-lockfile
 RUN bun run build
 
-FROM oven/bun:canary-alpine
+FROM oven/bun:alpine
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
