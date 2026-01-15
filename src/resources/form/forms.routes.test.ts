@@ -36,7 +36,7 @@ vi.mock("@/db", () => ({
         insert: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
-      }),
+      })
     ),
   },
 }));
@@ -79,6 +79,7 @@ vi.mock("@/resources/form/forms.service", () => ({
   updateForm: vi.fn(),
   deleteForm: vi.fn(),
   cloneForm: vi.fn(),
+  getForms: vi.fn(),
 }));
 
 // ---- actual imports AFTER mocks ----
@@ -88,6 +89,7 @@ import {
   updateForm,
   deleteForm,
   cloneForm,
+  getForms,
 } from "@/resources/form/forms.service";
 import { ApiError, handleError } from "@/lib/errors";
 
@@ -114,6 +116,109 @@ describe("Forms routes", () => {
   afterEach(() => {
     consoleErrorSpy.mockRestore();
     vi.clearAllMocks();
+  });
+
+  describe("Validation errors", () => {
+    it("rejects invalid seasonCode", async () => {
+      // exercise
+      const res = await app.request("/seasons/INVALID/forms");
+
+      // verify
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+    });
+
+    it("rejects invalid formId", async () => {
+      // exercise
+      const res = await app.request("/seasons/S26/forms/not-a-uuid");
+
+      // verify
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("GET /seasons/:seasonCode/forms", () => {
+    it("returns 200 with list of forms", async () => {
+      // setup
+      const mockForms = [
+        {
+          formId: FORM_ID,
+          seasonCode: "S26",
+          openTime: null,
+          closeTime: null,
+          tags: ["registration"],
+        },
+      ];
+      (getForms as Mock).mockResolvedValue(mockForms);
+
+      // exercise
+      const res = await app.request("/seasons/S26/forms");
+
+      // verify
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(mockForms);
+      expect(getForms).toHaveBeenCalledWith("S26");
+    });
+
+    it("returns empty array when no forms exist", async () => {
+      // setup
+      (getForms as Mock).mockResolvedValue([]);
+
+      // exercise
+      const res = await app.request("/seasons/S26/forms");
+
+      // verify
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual([]);
+    });
+  });
+
+  describe("GET /seasons/:seasonCode/forms/:formId", () => {
+    it("returns 200 with form and responses", async () => {
+      // setup
+      const mockFormWithResponses = {
+        formId: FORM_ID,
+        seasonCode: "S26",
+        openTime: null,
+        closeTime: null,
+        tags: ["registration"],
+        responses: [
+          {
+            responseId: "resp-1",
+            userId: "user-1",
+            answers: [],
+          },
+        ],
+      };
+      (getForms as Mock).mockResolvedValue(mockFormWithResponses);
+
+      // exercise
+      const res = await app.request(`/seasons/S26/forms/${FORM_ID}`);
+
+      // verify
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(mockFormWithResponses);
+      expect(getForms).toHaveBeenCalledWith("S26", FORM_ID);
+    });
+
+    it("returns 404 when form does not exist", async () => {
+      // setup
+      const apiError = new ApiError(404, {
+        code: "NOT_FOUND",
+        message: "Form not found",
+      });
+      (getForms as Mock).mockRejectedValue(apiError);
+
+      // exercise
+      const res = await app.request(`/seasons/S26/forms/${FORM_ID}`);
+
+      // verify
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error[0].code).toBe("NOT_FOUND");
+    });
   });
 
   describe("POST /seasons/:seasonCode/forms", () => {

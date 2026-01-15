@@ -3,6 +3,7 @@ import { form, formQuestion } from "@/db/schema";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { and, eq } from "drizzle-orm";
 import { ApiError } from "@/lib/errors";
+import { getFormResponses } from "@/resources/form/responses/responses.service";
 
 export interface CreateFormQuestionInput {
   formQuestionId: string;
@@ -17,6 +18,37 @@ export interface CreateFormInput {
   tags?: string[];
   questions?: CreateFormQuestionInput[];
 }
+
+export const getForms = async (seasonCode: string, formId?: string) => {
+  try {
+    if (formId) {
+      const formResult = await db
+        .select()
+        .from(form)
+        .where(and(eq(form.seasonCode, seasonCode), eq(form.formId, formId)))
+        .limit(1);
+      const responses = await getFormResponses(seasonCode, formId);
+      return formResult[0]
+        ? {
+            formId: formResult[0].formId,
+            seasonCode: formResult[0].seasonCode,
+            openTime: formResult[0].openTime,
+            closeTime: formResult[0].closeTime,
+            tags: formResult[0].tags,
+            responses,
+          }
+        : null;
+    } else {
+      const result = await db
+        .select()
+        .from(form)
+        .where(eq(form.seasonCode, seasonCode));
+      return result ?? null;
+    }
+  } catch (error: unknown) {
+    throw handleDbError(error);
+  }
+};
 
 export const createForm = async (input: CreateFormInput) => {
   try {
@@ -39,7 +71,7 @@ export const createForm = async (input: CreateFormInput) => {
             seasonCode: input.seasonCode,
             questionType: q.questionType,
             tags: q.tags ?? [],
-          })),
+          }))
         );
       }
 
@@ -74,8 +106,8 @@ export const updateForm = async (input: UpdateFormInput) => {
         .where(
           and(
             eq(form.formId, input.formId),
-            eq(form.seasonCode, input.seasonCode),
-          ),
+            eq(form.seasonCode, input.seasonCode)
+          )
         );
 
       if (existing.length === 0) {
@@ -96,8 +128,8 @@ export const updateForm = async (input: UpdateFormInput) => {
         .where(
           and(
             eq(form.formId, input.formId),
-            eq(form.seasonCode, input.seasonCode),
-          ),
+            eq(form.seasonCode, input.seasonCode)
+          )
         )
         .returning();
 
@@ -108,8 +140,8 @@ export const updateForm = async (input: UpdateFormInput) => {
           .where(
             and(
               eq(formQuestion.formId, input.formId),
-              eq(formQuestion.seasonCode, input.seasonCode),
-            ),
+              eq(formQuestion.seasonCode, input.seasonCode)
+            )
           );
 
         if (input.questions.length > 0) {
@@ -120,7 +152,7 @@ export const updateForm = async (input: UpdateFormInput) => {
               seasonCode: input.seasonCode,
               questionType: q.questionType,
               tags: q.tags ?? [],
-            })),
+            }))
           );
         }
       }
@@ -182,8 +214,8 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
         .where(
           and(
             eq(formQuestion.formId, formId),
-            eq(formQuestion.seasonCode, seasonCode),
-          ),
+            eq(formQuestion.seasonCode, seasonCode)
+          )
         );
 
       // Create new form (same fields)
@@ -206,7 +238,7 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
             seasonCode,
             questionType: q.questionType,
             tags: q.tags ?? [],
-          })),
+          }))
         );
       }
 

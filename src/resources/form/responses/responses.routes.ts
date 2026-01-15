@@ -14,7 +14,7 @@ import { requireRoles, UserType, getUserId } from "@/lib/auth";
 
 const formResponsesRoute = new Hono();
 
-const formResponseSchema = z.object({
+export const formResponseSchema = z.object({
   formResponseId: z.guid(),
   formId: z.guid(),
   userId: z.guid(),
@@ -49,7 +49,7 @@ formResponsesRoute.get(
     z.object({
       formId: z.guid().optional(),
       userId: z.guid().optional(),
-    }),
+    })
   ),
   validator("param", z.object({ seasonCode: z.string().length(3) })),
   requireRoles(UserType.User),
@@ -64,10 +64,10 @@ formResponsesRoute.get(
     const responses = await getFormResponses(
       seasonCode,
       query.formId,
-      query.userId,
+      query.userId
     );
     return c.json(responses);
-  },
+  }
 );
 
 const getRandomFormResponseDescription = {
