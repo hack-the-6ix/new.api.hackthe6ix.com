@@ -188,7 +188,6 @@ describe("forms.service", () => {
       expect(getFormResponses).toHaveBeenCalledWith("S26", FORM_ID);
     });
 
-
     it("returns null when formId is provided but form does not exist", async () => {
       // setup
       const limitMock = vi.fn().mockResolvedValue([]);

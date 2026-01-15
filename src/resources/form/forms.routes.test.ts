@@ -36,7 +36,7 @@ vi.mock("@/db", () => ({
         insert: vi.fn(),
         update: vi.fn(),
         delete: vi.fn(),
-      })
+      }),
     ),
   },
 }));

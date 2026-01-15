@@ -73,7 +73,7 @@ formsRoute.get(
 
     const responses = await getForms(seasonCode);
     return c.json(responses);
-  }
+  },
 );
 
 // --- GET FORM ---
@@ -100,7 +100,7 @@ formsRoute.get(
   describeRoute(getFormsDescription),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.guid()})
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   async (c) => {
     const seasonCode = c.req.valid("param").seasonCode;
@@ -108,7 +108,7 @@ formsRoute.get(
 
     const responses = await getForms(seasonCode, formId);
     return c.json(responses);
-  }
+  },
 );
 
 // --- CREATE ---

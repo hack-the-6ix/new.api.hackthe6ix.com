@@ -71,7 +71,7 @@ export const createForm = async (input: CreateFormInput) => {
             seasonCode: input.seasonCode,
             questionType: q.questionType,
             tags: q.tags ?? [],
-          }))
+          })),
         );
       }
 
@@ -106,8 +106,8 @@ export const updateForm = async (input: UpdateFormInput) => {
         .where(
           and(
             eq(form.formId, input.formId),
-            eq(form.seasonCode, input.seasonCode)
-          )
+            eq(form.seasonCode, input.seasonCode),
+          ),
         );
 
       if (existing.length === 0) {
@@ -128,8 +128,8 @@ export const updateForm = async (input: UpdateFormInput) => {
         .where(
           and(
             eq(form.formId, input.formId),
-            eq(form.seasonCode, input.seasonCode)
-          )
+            eq(form.seasonCode, input.seasonCode),
+          ),
         )
         .returning();
 
@@ -140,8 +140,8 @@ export const updateForm = async (input: UpdateFormInput) => {
           .where(
             and(
               eq(formQuestion.formId, input.formId),
-              eq(formQuestion.seasonCode, input.seasonCode)
-            )
+              eq(formQuestion.seasonCode, input.seasonCode),
+            ),
           );
 
         if (input.questions.length > 0) {
@@ -152,7 +152,7 @@ export const updateForm = async (input: UpdateFormInput) => {
               seasonCode: input.seasonCode,
               questionType: q.questionType,
               tags: q.tags ?? [],
-            }))
+            })),
           );
         }
       }
@@ -214,8 +214,8 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
         .where(
           and(
             eq(formQuestion.formId, formId),
-            eq(formQuestion.seasonCode, seasonCode)
-          )
+            eq(formQuestion.seasonCode, seasonCode),
+          ),
         );
 
       // Create new form (same fields)
@@ -238,7 +238,7 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
             seasonCode,
             questionType: q.questionType,
             tags: q.tags ?? [],
-          }))
+          })),
         );
       }
 

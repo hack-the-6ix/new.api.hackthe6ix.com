@@ -49,7 +49,7 @@ formResponsesRoute.get(
     z.object({
       formId: z.guid().optional(),
       userId: z.guid().optional(),
-    })
+    }),
   ),
   validator("param", z.object({ seasonCode: z.string().length(3) })),
   requireRoles(UserType.User),
@@ -64,10 +64,10 @@ formResponsesRoute.get(
     const responses = await getFormResponses(
       seasonCode,
       query.formId,
-      query.userId
+      query.userId,
     );
     return c.json(responses);
-  }
+  },
 );
 
 const getRandomFormResponseDescription = {
