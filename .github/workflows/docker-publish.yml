@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - daniel/build-and-push-docker
 
 jobs:
   build:
