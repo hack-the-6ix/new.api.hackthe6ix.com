@@ -5,7 +5,6 @@ import {
   jsonb,
   boolean,
   timestamp,
-  unique,
   primaryKey,
   foreignKey,
 } from "drizzle-orm/pg-core";
@@ -31,7 +30,6 @@ export const formResponse = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.seasonCode, t.userId, t.formId] }),
-    unique().on(t.seasonCode, t.userId, t.formId),
     foreignKey({
       columns: [t.seasonCode, t.formId],
       foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, formId)
