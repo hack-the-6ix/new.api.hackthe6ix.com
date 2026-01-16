@@ -3,7 +3,6 @@ import { form, formQuestion } from "@/db/schema";
 import { handleDbError } from "@/db/utils/dbErrorUtils";
 import { and, eq } from "drizzle-orm";
 import { ApiError } from "@/lib/errors";
-import { getFormResponses } from "@/resources/form/responses/responses.service";
 
 export interface CreateFormQuestionInput {
   formQuestionId: string;
@@ -19,32 +18,40 @@ export interface CreateFormInput {
   questions?: CreateFormQuestionInput[];
 }
 
-export const getForms = async (seasonCode: string, formId?: string) => {
+export const getAllForms = async (seasonCode: string) => {
   try {
-    if (formId) {
-      const formResult = await db
-        .select()
-        .from(form)
-        .where(and(eq(form.seasonCode, seasonCode), eq(form.formId, formId)))
-        .limit(1);
-      const responses = await getFormResponses(seasonCode, formId);
-      return formResult[0]
-        ? {
-            formId: formResult[0].formId,
-            seasonCode: formResult[0].seasonCode,
-            openTime: formResult[0].openTime,
-            closeTime: formResult[0].closeTime,
-            tags: formResult[0].tags,
-            responses,
-          }
-        : null;
-    } else {
-      const result = await db
-        .select()
-        .from(form)
-        .where(eq(form.seasonCode, seasonCode));
-      return result ?? null;
-    }
+    const result = await db
+      .select()
+      .from(form)
+      .where(eq(form.seasonCode, seasonCode));
+    return result ?? null;
+  } catch (error: unknown) {
+    throw handleDbError(error);
+  }
+};
+
+export const getForms = async (seasonCode: string, formId: string) => {
+  try {
+    const formResult = await db
+      .select()
+      .from(form)
+      .where(and(eq(form.seasonCode, seasonCode), eq(form.formId, formId)))
+      .limit(1);
+    const questions = await await db
+      .select()
+      .from(formQuestion)
+      .where(
+        and(
+          eq(formQuestion.seasonCode, seasonCode),
+          formId ? eq(formQuestion.formId, formId) : undefined,
+        ),
+      );
+    return formResult[0]
+      ? {
+          ...formResult[0],
+          questions,
+        }
+      : null;
   } catch (error: unknown) {
     throw handleDbError(error);
   }

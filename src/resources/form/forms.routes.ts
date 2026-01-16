@@ -6,11 +6,11 @@ import {
   updateForm,
   deleteForm,
   cloneForm,
+  getAllForms,
   getForms,
 } from "@/resources/form/forms.service";
 import { genericErrorResponse } from "@/config/openapi";
 import { requireRoles, UserType } from "@/lib/auth";
-import { formResponseSchema } from "@/resources/form/responses/responses.routes";
 
 const questionSchema = z.object({
   formQuestionId: z.string().max(80),
@@ -40,8 +40,17 @@ const formSchema = z.object({
   tags: z.array(z.string()),
 });
 
+const formQuestionSchema = z.object({
+  formQuestionId: z.string().length(80),
+  formName: z.string,
+  formId: z.guid(),
+  seasonCode: z.string().length(3),
+  questionType: z.string(),
+  tags: z.string(),
+});
+
 const formAndResponseSchema = formSchema.extend({
-  responses: z.array(formResponseSchema),
+  questions: z.array(formQuestionSchema),
 });
 
 const formsRoute = new Hono();
@@ -71,7 +80,7 @@ formsRoute.get(
   async (c) => {
     const seasonCode = c.req.valid("param").seasonCode;
 
-    const responses = await getForms(seasonCode);
+    const responses = await getAllForms(seasonCode);
     return c.json(responses);
   },
 );

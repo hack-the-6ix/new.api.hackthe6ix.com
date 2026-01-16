@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
 
 // Mock env first
 vi.mock("@/config/env", () => ({
@@ -85,10 +86,6 @@ vi.mock("@/db/utils/dbErrorUtils", () => ({
   }),
 }));
 
-vi.mock("./responses/responses.service", () => ({
-  getFormResponses: vi.fn(),
-}));
-
 import { db } from "@/db";
 import { form, formQuestion } from "@/db/schema";
 import {
@@ -96,9 +93,9 @@ import {
   updateForm,
   deleteForm,
   cloneForm,
+  getAllForms,
   getForms,
 } from "@/resources/form/forms.service";
-import { getFormResponses } from "@/resources/form/responses/responses.service";
 
 const FORM_ID = "019b4d85-4bd6-74b3-9485-88343744d21c";
 const FORM_ID_2 = "019b4d79-2623-79e4-8615-e46f1ac64125";
@@ -108,109 +105,140 @@ beforeEach(() => {
 });
 
 describe("forms.service", () => {
-  describe("getForms", () => {
+  describe("getAllForms", () => {
+    let selectMock: Mock;
+    let fromMock: Mock;
+    let whereMock: Mock;
+
+    beforeEach(() => {
+      whereMock = vi.fn();
+      fromMock = vi.fn(() => ({ where: whereMock }));
+      selectMock = vi.fn(() => ({ from: fromMock }));
+      (db.select as Mock) = selectMock;
+      vi.clearAllMocks();
+    });
+
     it("returns all forms for a season", async () => {
       // setup
       const mockForms = [
         {
-          formId: FORM_ID,
+          formId: "form-1",
           seasonCode: "S26",
           openTime: null,
           closeTime: null,
           tags: ["registration"],
         },
-        {
-          formId: FORM_ID_2,
-          seasonCode: "S26",
-          openTime: null,
-          closeTime: null,
-          tags: [],
-        },
       ];
-      // select().from().where() → forms[]
-      const whereMock = vi.fn().mockResolvedValue(mockForms);
-      const fromMock = vi.fn(() => ({ where: whereMock }));
-      (db.select as Mock).mockReturnValue({ from: fromMock });
+      whereMock.mockResolvedValue(mockForms);
 
       // exercise
-      const result = await getForms("S26");
+      const result = await getAllForms("S26");
 
       // verify
       expect(result).toEqual(mockForms);
-      expect(db.select).toHaveBeenCalled();
+      expect(selectMock).toHaveBeenCalled();
+      expect(fromMock).toHaveBeenCalledWith(form);
       expect(whereMock).toHaveBeenCalled();
     });
 
     it("returns empty array when no forms exist", async () => {
       // setup
-      const whereMock = vi.fn().mockResolvedValue([]);
-      const fromMock = vi.fn(() => ({ where: whereMock }));
-      (db.select as Mock).mockReturnValue({ from: fromMock });
+      whereMock.mockResolvedValue([]);
 
       // exercise
-      const result = await getForms("S26");
+      const result = await getAllForms("S26");
 
       // verify
       expect(result).toEqual([]);
     });
 
-    it("returns form with responses when formId is provided", async () => {
+    it("throws wrapped db error on failure", async () => {
+      // setup
+      const dbError = new Error("db failed");
+      const apiError = new Error("DB_ERROR");
+      whereMock.mockRejectedValue(dbError);
+      (handleDbError as Mock).mockReturnValue(apiError);
+
+      // exercise & verify
+      await expect(getAllForms("S26")).rejects.toThrow("DB_ERROR");
+      expect(handleDbError).toHaveBeenCalledWith(dbError);
+    });
+  });
+
+  describe("getForms", () => {
+    let selectMock: Mock;
+    let fromMock: Mock;
+    let whereMock: Mock;
+    let limitMock: Mock;
+
+    beforeEach(() => {
+      limitMock = vi.fn();
+      whereMock = vi.fn(() => ({ limit: limitMock }));
+      fromMock = vi.fn(() => ({ where: whereMock }));
+      selectMock = vi.fn(() => ({ from: fromMock }));
+      (db.select as Mock) = selectMock;
+      vi.clearAllMocks();
+    });
+
+    it("returns form with questions when form exists", async () => {
       // setup
       const mockForm = {
-        formId: FORM_ID,
+        formId: "form-1",
         seasonCode: "S26",
-        openTime: null,
-        closeTime: null,
-        tags: ["registration"],
       };
-      const mockResponses = [
+
+      const mockQuestions = [
         {
-          responseId: "resp-1",
-          formId: FORM_ID,
-          userId: "user-1",
-          answers: [],
+          questionId: "q-1",
+          formId: "form-1",
+          seasonCode: "S26",
+          prompt: "Why?",
         },
       ];
-      const limitMock = vi.fn().mockResolvedValue([mockForm]);
-      const whereMock = vi.fn(() => ({ limit: limitMock }));
-      const fromMock = vi.fn(() => ({ where: whereMock }));
+
+      // form
+      limitMock.mockResolvedValue([mockForm]);
+
+      // questions
+      const questionWhereMock = vi.fn().mockResolvedValue(mockQuestions);
+      const questionFromMock = vi.fn(() => ({ where: questionWhereMock }));
+
+      (db.select as Mock)
+        .mockReturnValueOnce({ from: fromMock }) // form query
+        .mockReturnValueOnce({ from: questionFromMock }); // questions query
 
       // exercise
-      (db.select as Mock).mockReturnValue({ from: fromMock });
-      (getFormResponses as Mock).mockResolvedValue(mockResponses);
-      const result = await getForms("S26", FORM_ID);
+      const result = await getForms("S26", "form-1");
 
       // verify
       expect(result).toEqual({
         ...mockForm,
-        responses: mockResponses,
+        questions: mockQuestions,
       });
-      expect(getFormResponses).toHaveBeenCalledWith("S26", FORM_ID);
     });
 
-    it("returns null when formId is provided but form does not exist", async () => {
+    it("returns null when form does not exist", async () => {
       // setup
-      const limitMock = vi.fn().mockResolvedValue([]);
-      const whereMock = vi.fn(() => ({ limit: limitMock }));
-      const fromMock = vi.fn(() => ({ where: whereMock }));
-
-      (db.select as Mock).mockReturnValue({ from: fromMock });
+      limitMock.mockResolvedValue([]);
 
       // exercise
-      const result = await getForms("S26", FORM_ID);
+      const result = await getForms("S26", "form-1");
 
       // verify
       expect(result).toBeNull();
     });
 
-    it("throws ApiError on database failure", async () => {
+    it("throws wrapped db error on failure", async () => {
       // setup
-      const whereMock = vi.fn().mockRejectedValue(new Error("db failed"));
-      const fromMock = vi.fn(() => ({ where: whereMock }));
-      (db.select as Mock).mockReturnValue({ from: fromMock });
+      const dbError = new Error("query failed");
+      const apiError = new Error("DB_QUERY_ERROR");
+
+      limitMock.mockRejectedValue(dbError);
+      (handleDbError as Mock).mockReturnValue(apiError);
 
       // exercise & verify
-      await expect(getForms("S26")).rejects.toBeInstanceOf(ApiError);
+      await expect(getForms("S26", "form-1")).rejects.toThrow("DB_QUERY_ERROR");
+      expect(handleDbError).toHaveBeenCalledWith(dbError);
     });
   });
 
