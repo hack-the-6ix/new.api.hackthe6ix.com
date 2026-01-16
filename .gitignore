@@ -15,7 +15,7 @@ dist/
 db-data/
 
 #dotenv files
-.env
+.env*
 !.env.example
 
 #test coverage
