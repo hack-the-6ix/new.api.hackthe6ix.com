@@ -7,10 +7,8 @@
     "build:scripts": "bun build scripts/seed.ts --outdir=dist/scripts --target=bun && bun build scripts/migrate.ts --outdir=dist/scripts --target=bun",
     "start": "bun run dist/server.js",
     "db:seed": "bun run scripts/seed.ts",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --fix --ext .ts",
-    "format": "prettier . --check ",
-    "format:fix": "prettier . --write",
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage"
