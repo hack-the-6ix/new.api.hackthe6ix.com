@@ -1,0 +1,1 @@
+ALTER TABLE "form" DROP COLUMN "eventId";

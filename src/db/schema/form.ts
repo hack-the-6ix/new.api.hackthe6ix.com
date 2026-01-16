@@ -18,9 +18,6 @@ export const form = pgTable(
     seasonCode: char("seasonCode", { length: 3 })
       .notNull()
       .references(() => season.seasonCode, { onUpdate: "cascade" }),
-    eventId: uuid("eventId")
-      .notNull()
-      .default(sql`uuidv7()`),
     formName: text("formName"),
     openTime: timestamp("openTime"),
     closeTime: timestamp("closeTime"),
