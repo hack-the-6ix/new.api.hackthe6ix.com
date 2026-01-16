@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "bun run --hot src/server.ts",
     "build": "bun build src/server.ts --outdir=dist --target=bun",
+    "build:scripts": "bun build scripts/seed.ts --outdir=dist/scripts --target=bun && bun build scripts/migrate.ts --outdir=dist/scripts --target=bun",
     "start": "bun run dist/server.js",
     "db:seed": "bun run scripts/seed.ts",
     "lint": "eslint . --ext .ts",
