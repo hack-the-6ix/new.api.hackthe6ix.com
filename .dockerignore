@@ -1,0 +1,45 @@
+# Development files
+node_modules
+.env
+.env.*
+!.env.example
+
+# Test files
+*.test.ts
+**/*.test.ts
+coverage
+.vitest
+
+# Build artifacts
+dist
+*.log
+
+# Git
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+db-data
+*.sqlite
+*.db
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.husky
+.prettierrc
+.eslintrc*
+vitest.config.ts
