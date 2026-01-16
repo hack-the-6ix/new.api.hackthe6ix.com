@@ -87,7 +87,6 @@ beforeAll(async () => {
   await mocks.testDb.insert(form).values({
     seasonCode,
     formId,
-    eventId: "31234567-89ab-cdef-0123-456789abcdef",
     formName: "Test Form",
   });
 });
@@ -208,7 +207,6 @@ describe("Form Responses Routes", () => {
       await mocks.testDb.insert(form).values({
         seasonCode,
         formId: anotherFormId,
-        eventId: "31234567-89ab-cdef-0123-456789abcdef",
         formName: "Another Form",
       });
 
