@@ -15,11 +15,8 @@ dist/
 db-data/
 
 #dotenv files
-.env
-.env.local
-.env.*.local
-.env.test
-.env.production
+.env*
+!.env.example
 
 #test coverage
 coverage/
