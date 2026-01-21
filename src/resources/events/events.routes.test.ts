@@ -1,13 +1,5 @@
 import { Context } from "hono";
-import {
-  afterAll,
-  beforeAll,
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import * as svc from "@/resources/events/events.service";
 type CheckInReturn = Awaited<ReturnType<(typeof svc)["checkInUser"]>>;
 import app from "@/server";
@@ -25,41 +17,12 @@ vi.mock("@/config/env", () => ({
   dev: false,
 }));
 
-let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
-beforeAll(() => {
-  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-});
-
-afterAll(() => {
-  consoleErrorSpy.mockRestore();
-});
-
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 vi.mock("@/db", () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-  },
-}));
-
-vi.mock("@/db/schema", () => ({
-  seasonResponse: {
-    seasonCode: "seasonCode",
-    seasonId: "seasonId",
-    eventName: "testEvent",
-    startTime: "1:00",
-    endTime: "2:00",
-  },
-}));
-
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((field, value) => ({ field, value, type: "eq" })),
-  and: vi.fn((...conditions) => ({ conditions, type: "and" })),
-  sql: vi.fn((strings, ...values) => ({ strings, values, type: "sql" })),
+  db: {},
 }));
 
 vi.mock("@/db/utils/dbErrorUtils", () => ({
@@ -109,9 +72,13 @@ describe("Events Routes", () => {
     });
 
     it("returns 500 when service throws", async () => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       vi.spyOn(svc, "fetchEvents").mockRejectedValue(new Error("boom"));
+
       const res = await app.request("/api/seasons/S26/events");
+
       expect(res.status).toBe(500);
+      errorSpy.mockRestore();
     });
   });
 

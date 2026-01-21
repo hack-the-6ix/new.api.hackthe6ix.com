@@ -40,15 +40,7 @@ eventsRoute.get(
     const seasonCode = c.req.param("seasonCode");
 
     const response = await fetchEvents(seasonCode);
-
-    if (!response) {
-      throw new ApiError(404, {
-        code: "NO_EVENTS_FOUND",
-        message: "No events found",
-        suggestion: "Verify the seasonCode is correct.",
-      });
-    }
-    return c.json(response);
+    return c.json(response ?? []);
   },
 );
 
