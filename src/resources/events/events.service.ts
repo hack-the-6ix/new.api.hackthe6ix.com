@@ -1,0 +1,74 @@
+import { db } from "@/db";
+import { eventCheckIn } from "@/db/schema/eventCheckIn";
+import { event } from "@/db/schema/event";
+import { handleDbError } from "@/db/utils/dbErrorUtils";
+import { eq, sql } from "drizzle-orm";
+
+export const fetchEvents = async (seasonCode: string) => {
+  try {
+    const result = await db
+      .select()
+      .from(event)
+      .where(eq(event.seasonCode, seasonCode));
+    return result;
+  } catch (error) {
+    throw handleDbError(error);
+  }
+};
+
+export const createEvent = async (
+  seasonCode: string,
+  eventName: string,
+  startTime: Date | null,
+  endTime: Date | null,
+) => {
+  try {
+    const result = await db
+      .insert(event)
+      .values({
+        seasonCode,
+        eventName,
+        startTime: startTime ?? null,
+        endTime: endTime ?? null,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    throw handleDbError(error);
+  }
+};
+
+export const checkInUser = async (
+  seasonCode: string,
+  eventId: string,
+  userId: string,
+  checkInAuthor: string,
+  checkInNotes?: string,
+) => {
+  try {
+    const result = await db
+      .insert(eventCheckIn)
+      .values({
+        seasonCode,
+        eventId,
+        userId,
+        checkInAuthor,
+        checkInNotes: checkInNotes || null,
+      })
+      .onConflictDoUpdate({
+        target: [eventCheckIn.userId, eventCheckIn.eventId],
+        set: {
+          checkInAuthor,
+          checkInNotes: checkInNotes || null,
+          createdAt: sql`NOW()`,
+        },
+      })
+      .returning();
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    throw handleDbError(error);
+  }
+};
