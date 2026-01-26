@@ -44,6 +44,8 @@
     "vitest": "^4.0.8"
   },
   "lint-staged": {
-    "*": ["eslint --fix"]
+    "*": [
+      "eslint --fix"
+    ]
   }
 }

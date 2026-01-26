@@ -6,21 +6,21 @@ import { FORM_1_ID, FORM_2_ID } from "./forms";
 export const questions = [
   // Form 1 questions (Hacker Application)
   {
-    formQuestionId: "firstName",
+    formQuestionRef: "firstName",
     formId: FORM_1_ID,
     seasonCode: "S26",
     questionType: "text",
     tags: ["required", "profile"],
   },
   {
-    formQuestionId: "lastName",
+    formQuestionRef: "lastName",
     formId: FORM_1_ID,
     seasonCode: "S26",
     questionType: "text",
     tags: ["required", "profile"],
   },
   {
-    formQuestionId: "email",
+    formQuestionRef: "email",
     formId: FORM_1_ID,
     seasonCode: "S26",
     questionType: "text",
@@ -29,21 +29,21 @@ export const questions = [
 
   // Form 2 questions (Workshop Feedback)
   {
-    formQuestionId: "workshopName",
+    formQuestionRef: "workshopName",
     formId: FORM_2_ID,
     seasonCode: "S26",
     questionType: "text",
     tags: ["required"],
   },
   {
-    formQuestionId: "rating",
+    formQuestionRef: "rating",
     formId: FORM_2_ID,
     seasonCode: "S26",
     questionType: "number",
     tags: ["required"],
   },
   {
-    formQuestionId: "comments",
+    formQuestionRef: "comments",
     formId: FORM_2_ID,
     seasonCode: "S26",
     questionType: "text",

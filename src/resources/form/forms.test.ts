@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-// Mock env first
 vi.mock("@/config/env", () => ({
   default: {
     NODE_ENV: "test",
@@ -51,7 +50,6 @@ vi.mock("@/db/schema", () => ({
   },
 }));
 
-// 🔹 Mock auth so errors.ts can import it without touching real @/db/schema
 vi.mock("@/lib/auth", () => ({
   isUserType: vi.fn(),
   getUserId: vi.fn(),
@@ -161,8 +159,8 @@ describe("forms.service", () => {
         openTime: null,
         closeTime: null,
         questions: [
-          { formQuestionId: "q1", questionType: "text", tags: ["required"] },
-          { formQuestionId: "q2", questionType: "number" },
+          { formQuestionRef: "q1", questionType: "text", tags: ["required"] },
+          { formQuestionRef: "q2", questionType: "number" },
         ],
       });
 
@@ -172,14 +170,14 @@ describe("forms.service", () => {
 
       expect(questionValuesMock).toHaveBeenCalledWith([
         {
-          formQuestionId: "q1",
+          formQuestionRef: "q1",
           formId: FORM_ID,
           seasonCode: "S26",
           questionType: "text",
           tags: ["required"],
         },
         {
-          formQuestionId: "q2",
+          formQuestionRef: "q2",
           formId: FORM_ID,
           seasonCode: "S26",
           questionType: "number",
@@ -296,13 +294,13 @@ describe("forms.service", () => {
         openTime: null,
         closeTime: null,
         formId: FORM_ID,
-        questions: [{ formQuestionId: "q1", questionType: "text" }],
+        questions: [{ formQuestionRef: "q1", questionType: "text" }],
       });
 
       expect(db.delete).toHaveBeenCalledWith(formQuestion);
       expect(qValuesMock).toHaveBeenCalledWith([
         {
-          formQuestionId: "q1",
+          formQuestionRef: "q1",
           formId: FORM_ID,
           seasonCode: "S26",
           questionType: "text",
@@ -347,12 +345,14 @@ describe("forms.service", () => {
       const fromMock = vi.fn(() => ({ where: whereMock }));
       (db.select as Mock).mockReturnValue({ from: fromMock });
 
-      await expect(cloneForm("S26", FORM_ID)).rejects.toMatchObject({
+      await expect(
+        cloneForm("S26", FORM_ID, ["new_q1", "new_q2"]),
+      ).rejects.toMatchObject({
         status: 404,
       });
     });
 
-    it("clones form and clones questions (new formId)", async () => {
+    it("clones form and questions with provided new refs", async () => {
       // 1) select src form
       const formWhereMock = vi.fn().mockResolvedValue([
         {
@@ -368,11 +368,18 @@ describe("forms.service", () => {
       // 2) select src questions
       const qWhereMock = vi.fn().mockResolvedValue([
         {
-          formQuestionId: "qOld1",
+          formQuestionRef: "qOld1",
           formId: FORM_ID,
           seasonCode: "S26",
           questionType: "text",
           tags: ["a"],
+        },
+        {
+          formQuestionRef: "qOld2",
+          formId: FORM_ID,
+          seasonCode: "S26",
+          questionType: "number",
+          tags: ["b"],
         },
       ]);
       const qFromMock = vi.fn(() => ({ where: qWhereMock }));
@@ -405,13 +412,9 @@ describe("forms.service", () => {
         },
       );
 
-      const NEW_Q_ID =
-        "new-q-id-0000-0000-0000-000000000000" as `${string}-${string}-${string}-${string}-${string}`;
+      const newQuestionRefs = ["new_q1", "new_q2"];
 
-      // mock crypto.randomUUID so test is deterministic
-      vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(NEW_Q_ID);
-
-      const result = await cloneForm("S26", FORM_ID);
+      const result = await cloneForm("S26", FORM_ID, newQuestionRefs);
 
       expect(result.formId).toBe(FORM_ID_2);
 
@@ -420,11 +423,18 @@ describe("forms.service", () => {
 
       expect(qValuesInsertMock).toHaveBeenCalledWith([
         {
-          formQuestionId: NEW_Q_ID,
+          formQuestionRef: "new_q1",
           formId: FORM_ID_2,
           seasonCode: "S26",
           questionType: "text",
           tags: ["a"],
+        },
+        {
+          formQuestionRef: "new_q2",
+          formId: FORM_ID_2,
+          seasonCode: "S26",
+          questionType: "number",
+          tags: ["b"],
         },
       ]);
     });
