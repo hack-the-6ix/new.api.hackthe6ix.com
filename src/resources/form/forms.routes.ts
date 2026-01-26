@@ -33,17 +33,14 @@ const updateFormBodySchema = z.object({
 const formSchema = z.object({
   formId: z.guid(),
   seasonCode: z.string().length(3),
-  formName: z.string().nullable(),
   openTime: z.iso.datetime().nullable(),
   closeTime: z.iso.datetime().nullable(),
   tags: z.array(z.string()),
 });
 
-const cloneFormBodySchema = z
-  .object({
-    formName: z.string().min(1).max(255).optional(),
-  })
-  .optional();
+const cloneFormBodySchema = z.object({
+  newQuestionRefs: z.array(z.string().max(80)),
+});
 
 const formsRoute = new Hono();
 
@@ -114,23 +111,22 @@ formsRoute.post(
     "param",
     z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
   ),
-  validator("json", cloneFormBodySchema),
+  validator("json", cloneFormBodySchema), // VALIDATOR INFERS REQUEST BODY (CONSISTENT WITH CREATE)
   requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
-    const body = c.req.valid("json") || {};
+    const body = c.req.valid("json");
 
     const cloned = await cloneForm(
       params.seasonCode,
       params.formId,
-      body.formName,
+      body.newQuestionRefs,
     );
 
     return c.json(
       {
         formId: cloned.formId,
         seasonCode: cloned.seasonCode,
-        formName: cloned.formName,
         openTime: cloned.openTime?.toISOString() ?? null,
         closeTime: cloned.closeTime?.toISOString() ?? null,
         tags: cloned.tags,

@@ -337,23 +337,27 @@ describe("forms.service", () => {
       expect(whereDeleteMock).toHaveBeenCalled();
     });
   });
+
   describe("cloneForm", () => {
     it("throws 404 if source form not found", async () => {
+      // first select()...from(form)...where(...) returns []
       const whereMock = vi.fn().mockResolvedValue([]);
       const fromMock = vi.fn(() => ({ where: whereMock }));
       (db.select as Mock).mockReturnValue({ from: fromMock });
 
-      await expect(cloneForm("S26", FORM_ID)).rejects.toMatchObject({
+      await expect(
+        cloneForm("S26", FORM_ID, ["new_q1", "new_q2"]),
+      ).rejects.toMatchObject({
         status: 404,
       });
     });
 
-    it("clones form with same question refs and no custom formName", async () => {
+    it("clones form and questions with provided new refs", async () => {
+      // 1) select src form
       const formWhereMock = vi.fn().mockResolvedValue([
         {
           formId: FORM_ID,
           seasonCode: "S26",
-          formName: "Original Form",
           openTime: null,
           closeTime: null,
           tags: ["registration"],
@@ -361,6 +365,7 @@ describe("forms.service", () => {
       ]);
       const formFromMock = vi.fn(() => ({ where: formWhereMock }));
 
+      // 2) select src questions
       const qWhereMock = vi.fn().mockResolvedValue([
         {
           formQuestionRef: "qOld1",
@@ -379,15 +384,16 @@ describe("forms.service", () => {
       ]);
       const qFromMock = vi.fn(() => ({ where: qWhereMock }));
 
+      // db.select used twice; return different builders in order
       (db.select as Mock)
         .mockReturnValueOnce({ from: formFromMock })
         .mockReturnValueOnce({ from: qFromMock });
 
+      // insert cloned form returning
       const returningMock = vi.fn().mockResolvedValue([
         {
           formId: FORM_ID_2,
           seasonCode: "S26",
-          formName: "Original Form",
           openTime: null,
           closeTime: null,
           tags: ["registration"],
@@ -395,6 +401,7 @@ describe("forms.service", () => {
       ]);
       const formValuesMock = vi.fn(() => ({ returning: returningMock }));
 
+      // insert cloned questions
       const qValuesInsertMock = vi.fn().mockResolvedValue(undefined);
 
       (db.insert as Mock).mockImplementation(
@@ -405,148 +412,31 @@ describe("forms.service", () => {
         },
       );
 
-      const result = await cloneForm("S26", FORM_ID);
+      const newQuestionRefs = ["new_q1", "new_q2"];
+
+      const result = await cloneForm("S26", FORM_ID, newQuestionRefs);
 
       expect(result.formId).toBe(FORM_ID_2);
-      expect(result.formName).toBe("Original Form");
 
       expect(db.insert).toHaveBeenCalledWith(form);
       expect(db.insert).toHaveBeenCalledWith(formQuestion);
 
-      // Now expecting SAME question refs (no timestamps)
       expect(qValuesInsertMock).toHaveBeenCalledWith([
         {
-          formQuestionRef: "qOld1", // Same ref
+          formQuestionRef: "new_q1",
           formId: FORM_ID_2,
           seasonCode: "S26",
           questionType: "text",
           tags: ["a"],
         },
         {
-          formQuestionRef: "qOld2", // Same ref
+          formQuestionRef: "new_q2",
           formId: FORM_ID_2,
           seasonCode: "S26",
           questionType: "number",
           tags: ["b"],
         },
       ]);
-    });
-
-    it("clones form with custom formName when provided", async () => {
-      const formWhereMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID,
-          seasonCode: "S26",
-          formName: "Original Form",
-          openTime: null,
-          closeTime: null,
-          tags: ["registration"],
-        },
-      ]);
-      const formFromMock = vi.fn(() => ({ where: formWhereMock }));
-
-      const qWhereMock = vi.fn().mockResolvedValue([]); // No questions
-      const qFromMock = vi.fn(() => ({ where: qWhereMock }));
-
-      (db.select as Mock)
-        .mockReturnValueOnce({ from: formFromMock })
-        .mockReturnValueOnce({ from: qFromMock });
-
-      const returningMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID_2,
-          seasonCode: "S26",
-          formName: "Custom Cloned Name",
-          openTime: null,
-          closeTime: null,
-          tags: ["registration"],
-        },
-      ]);
-      const formValuesMock = vi.fn(() => ({ returning: returningMock }));
-
-      (db.insert as Mock).mockReturnValue({ values: formValuesMock });
-
-      const result = await cloneForm("S26", FORM_ID, "Custom Cloned Name");
-
-      expect(result.formName).toBe("Custom Cloned Name");
-      expect(db.insert).toHaveBeenCalledTimes(1);
-    });
-
-    it("clones form with null formName when original is null", async () => {
-      const formWhereMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID,
-          seasonCode: "S26",
-          formName: null,
-          openTime: null,
-          closeTime: null,
-          tags: [],
-        },
-      ]);
-      const formFromMock = vi.fn(() => ({ where: formWhereMock }));
-
-      const qWhereMock = vi.fn().mockResolvedValue([]);
-      const qFromMock = vi.fn(() => ({ where: qWhereMock }));
-
-      (db.select as Mock)
-        .mockReturnValueOnce({ from: formFromMock })
-        .mockReturnValueOnce({ from: qFromMock });
-
-      const returningMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID_2,
-          seasonCode: "S26",
-          formName: null,
-          openTime: null,
-          closeTime: null,
-          tags: [],
-        },
-      ]);
-      const formValuesMock = vi.fn(() => ({ returning: returningMock }));
-
-      (db.insert as Mock).mockReturnValue({ values: formValuesMock });
-
-      const result = await cloneForm("S26", FORM_ID);
-      expect(result.formName).toBeNull();
-    });
-
-    it("clones form without questions when source has no questions", async () => {
-      const formWhereMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID,
-          seasonCode: "S26",
-          formName: "Empty Form",
-          openTime: null,
-          closeTime: null,
-          tags: [],
-        },
-      ]);
-      const formFromMock = vi.fn(() => ({ where: formWhereMock }));
-
-      const qWhereMock = vi.fn().mockResolvedValue([]);
-      const qFromMock = vi.fn(() => ({ where: qWhereMock }));
-
-      (db.select as Mock)
-        .mockReturnValueOnce({ from: formFromMock })
-        .mockReturnValueOnce({ from: qFromMock });
-
-      const returningMock = vi.fn().mockResolvedValue([
-        {
-          formId: FORM_ID_2,
-          seasonCode: "S26",
-          formName: "Empty Form",
-          openTime: null,
-          closeTime: null,
-          tags: [],
-        },
-      ]);
-      const formValuesMock = vi.fn(() => ({ returning: returningMock }));
-
-      (db.insert as Mock).mockReturnValue({ values: formValuesMock });
-
-      const result = await cloneForm("S26", FORM_ID);
-      expect(result.formId).toBe(FORM_ID_2);
-      expect(db.insert).toHaveBeenCalledTimes(1);
     });
   });
 });
