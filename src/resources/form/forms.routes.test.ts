@@ -163,7 +163,7 @@ describe("Forms routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questions: [
-            { formQuestionRef: "q1", questionType: "text", tags: ["required"] },
+            { formQuestionId: "q1", questionType: "text", tags: ["required"] },
           ],
         }),
       });
@@ -175,7 +175,7 @@ describe("Forms routes", () => {
         closeTime: null,
         tags: [],
         questions: [
-          { formQuestionRef: "q1", questionType: "text", tags: ["required"] },
+          { formQuestionId: "q1", questionType: "text", tags: ["required"] },
         ],
       });
     });
@@ -211,33 +211,17 @@ describe("Forms routes", () => {
         closeTime: null,
         tags: ["registration", "updated"],
       };
-
-      // Make absolutely sure the mock is set up correctly
-      const cloneFormMock = vi.fn();
-      cloneFormMock.mockResolvedValue(mockCloned);
-
-      // Replace the mock in the module
-      vi.mocked(cloneForm).mockImplementation(cloneFormMock);
+      (cloneForm as Mock).mockResolvedValue(mockCloned);
 
       const res = await app.request(`/seasons/S26/forms/${FORM_ID}/clone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          newQuestionRefs: ["new_q1"],
-        }),
+        body: JSON.stringify({}),
       });
 
       expect(res.status).toBe(201);
-    });
-    it("returns 400 for invalid request", async () => {
-      // Test one validation case - missing required field
-      const res = await app.request(`/seasons/S26/forms/${FORM_ID}/clone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // Missing newQuestionRefs
-      });
-
-      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual(mockCloned);
+      expect(cloneForm).toHaveBeenCalledWith("S26", FORM_ID);
     });
   });
 

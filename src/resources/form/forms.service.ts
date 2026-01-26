@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { ApiError } from "@/lib/errors";
 
 export interface CreateFormQuestionInput {
-  formQuestionRef: string;
+  formQuestionId: string;
   questionType: string;
   tags?: string[];
 }
@@ -34,7 +34,7 @@ export const createForm = async (input: CreateFormInput) => {
       if (input.questions && input.questions.length > 0) {
         await tx.insert(formQuestion).values(
           input.questions.map((q) => ({
-            formQuestionRef: q.formQuestionRef,
+            formQuestionId: q.formQuestionId,
             formId: createdForm.formId,
             seasonCode: input.seasonCode,
             questionType: q.questionType,
@@ -115,7 +115,7 @@ export const updateForm = async (input: UpdateFormInput) => {
         if (input.questions.length > 0) {
           await tx.insert(formQuestion).values(
             input.questions.map((q) => ({
-              formQuestionRef: q.formQuestionRef,
+              formQuestionId: q.formQuestionId,
               formId: input.formId,
               seasonCode: input.seasonCode,
               questionType: q.questionType,
@@ -158,14 +158,10 @@ export const deleteForm = async (seasonCode: string, formId: string) => {
   }
 };
 
-export const cloneForm = async (
-  seasonCode: string,
-  formId: string,
-  newQuestionRefs: string[], // Array of new refs in SAME ORDER as source
-) => {
+export const cloneForm = async (seasonCode: string, formId: string) => {
   try {
     return await db.transaction(async (tx) => {
-      // Load source form
+      // Load existing form
       const [src] = await tx
         .select()
         .from(form)
@@ -179,7 +175,7 @@ export const cloneForm = async (
         });
       }
 
-      // Load source questions
+      // Load existing questions
       const srcQuestions = await tx
         .select()
         .from(formQuestion)
@@ -190,16 +186,7 @@ export const cloneForm = async (
           ),
         );
 
-      // Validate: must provide refs for ALL questions
-      if (newQuestionRefs.length !== srcQuestions.length) {
-        throw new ApiError(400, {
-          code: "QUESTION_COUNT_MISMATCH",
-          message: "Must provide new refs for all questions",
-          suggestion: `Source has ${srcQuestions.length} questions, got ${newQuestionRefs.length} refs`,
-        });
-      }
-
-      // Create cloned form (identical except new ID)
+      // Create new form (same fields)
       const [cloned] = await tx
         .insert(form)
         .values({
@@ -210,13 +197,13 @@ export const cloneForm = async (
         })
         .returning();
 
-      // Clone questions with NEW refs (in same order)
+      // Clone questions (new formId; new question ids to avoid collisions)
       if (srcQuestions.length > 0) {
         await tx.insert(formQuestion).values(
-          srcQuestions.map((q, index) => ({
-            formQuestionRef: newQuestionRefs[index], // Use provided new ref
+          srcQuestions.map((q) => ({
+            formQuestionId: crypto.randomUUID(),
             formId: cloned.formId,
-            seasonCode: src.seasonCode,
+            seasonCode,
             questionType: q.questionType,
             tags: q.tags ?? [],
           })),

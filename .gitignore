@@ -22,5 +22,3 @@ db-data/
 coverage/
 
 **/.DS_Store
-
-package-lock.json

@@ -11,7 +11,7 @@ import { genericErrorResponse } from "@/config/openapi";
 import { requireRoles, UserType } from "@/lib/auth";
 
 const questionSchema = z.object({
-  formQuestionRef: z.string().max(80),
+  formQuestionId: z.string().max(80),
   questionType: z.string(),
   tags: z.array(z.string()).optional().default([]),
 });
@@ -36,10 +36,6 @@ const formSchema = z.object({
   openTime: z.iso.datetime().nullable(),
   closeTime: z.iso.datetime().nullable(),
   tags: z.array(z.string()),
-});
-
-const cloneFormBodySchema = z.object({
-  newQuestionRefs: z.array(z.string().max(80)),
 });
 
 const formsRoute = new Hono();
@@ -111,17 +107,11 @@ formsRoute.post(
     "param",
     z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
   ),
-  validator("json", cloneFormBodySchema), // VALIDATOR INFERS REQUEST BODY (CONSISTENT WITH CREATE)
   requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
-    const body = c.req.valid("json");
 
-    const cloned = await cloneForm(
-      params.seasonCode,
-      params.formId,
-      body.newQuestionRefs,
-    );
+    const cloned = await cloneForm(params.seasonCode, params.formId);
 
     return c.json(
       {
