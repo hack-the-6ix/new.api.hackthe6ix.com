@@ -112,7 +112,7 @@ formsRoute.post(
   }),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   validator("json", cloneFormBodySchema),
   requireRoles(UserType.Admin),
@@ -160,7 +160,7 @@ formsRoute.post(
   }),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   validator("json", updateFormBodySchema),
   requireRoles(UserType.Admin),
@@ -208,7 +208,7 @@ formsRoute.delete(
   }),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   requireRoles(UserType.Admin),
   async (c) => {

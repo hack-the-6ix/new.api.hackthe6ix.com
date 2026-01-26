@@ -203,7 +203,6 @@ export const cloneForm = async (
         })
         .returning();
 
-      // Clone questions with NEW refs (in same order)
       if (srcQuestions.length > 0) {
         const newQuestions = srcQuestions.map((q) => ({
           formQuestionRef: q.formQuestionRef,
