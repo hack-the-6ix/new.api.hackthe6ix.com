@@ -161,7 +161,7 @@ export const deleteForm = async (seasonCode: string, formId: string) => {
 export const cloneForm = async (
   seasonCode: string,
   formId: string,
-  newQuestionRefs: string[], // Array of new refs in SAME ORDER as source
+  formName?: string,
 ) => {
   try {
     return await db.transaction(async (tx) => {
@@ -190,39 +190,30 @@ export const cloneForm = async (
           ),
         );
 
-      // Validate: must provide refs for ALL questions
-      if (newQuestionRefs.length !== srcQuestions.length) {
-        throw new ApiError(400, {
-          code: "QUESTION_COUNT_MISMATCH",
-          message: "Must provide new refs for all questions",
-          suggestion: `Source has ${srcQuestions.length} questions, got ${newQuestionRefs.length} refs`,
-        });
-      }
-
-      // Create cloned form (identical except new ID)
+      // Create cloned form (with optional formName)
       const [cloned] = await tx
         .insert(form)
         .values({
           seasonCode: src.seasonCode,
+          formName: formName || src.formName,
           openTime: src.openTime,
           closeTime: src.closeTime,
           tags: src.tags ?? [],
+          // new id auto generated
         })
         .returning();
 
-      // Clone questions with NEW refs (in same order)
       if (srcQuestions.length > 0) {
-        await tx.insert(formQuestion).values(
-          srcQuestions.map((q, index) => ({
-            formQuestionRef: newQuestionRefs[index], // Use provided new ref
-            formId: cloned.formId,
-            seasonCode: src.seasonCode,
-            questionType: q.questionType,
-            tags: q.tags ?? [],
-          })),
-        );
-      }
+        const newQuestions = srcQuestions.map((q) => ({
+          formQuestionRef: q.formQuestionRef,
+          formId: cloned.formId,
+          seasonCode: src.seasonCode,
+          questionType: q.questionType,
+          tags: q.tags ?? [],
+        }));
 
+        await tx.insert(formQuestion).values(newQuestions);
+      }
       return cloned;
     });
   } catch (error: unknown) {
