@@ -268,7 +268,7 @@ describe("Forms routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questions: [
-            { formQuestionId: "q1", questionType: "text", tags: ["required"] },
+            { formQuestionRef: "q1", questionType: "text", tags: ["required"] },
           ],
         }),
       });
@@ -280,7 +280,7 @@ describe("Forms routes", () => {
         closeTime: null,
         tags: [],
         questions: [
-          { formQuestionId: "q1", questionType: "text", tags: ["required"] },
+          { formQuestionRef: "q1", questionType: "text", tags: ["required"] },
         ],
       });
     });
@@ -312,21 +312,64 @@ describe("Forms routes", () => {
       const mockCloned = {
         formId: CLONED_ID,
         seasonCode: "S26",
+        formName: "Cloned Form", // Added formName
         openTime: null,
         closeTime: null,
         tags: ["registration", "updated"],
       };
-      (cloneForm as Mock).mockResolvedValue(mockCloned);
+
+      vi.mocked(cloneForm).mockResolvedValue(mockCloned);
 
       const res = await app.request(`/seasons/S26/forms/${FORM_ID}/clone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          formName: "Cloned Form",
+        }),
       });
 
       expect(res.status).toBe(201);
-      expect(await res.json()).toEqual(mockCloned);
-      expect(cloneForm).toHaveBeenCalledWith("S26", FORM_ID);
+
+      // Verify the response matches expected structure
+      const responseBody = await res.json();
+      expect(responseBody).toEqual({
+        formId: CLONED_ID,
+        seasonCode: "S26",
+        formName: "Cloned Form",
+        openTime: null,
+        closeTime: null,
+        tags: ["registration", "updated"],
+      });
+
+      expect(cloneForm).toHaveBeenCalledWith("S26", FORM_ID, "Cloned Form");
+    });
+
+    it("returns 201 with default form name when not specified", async () => {
+      const mockCloned = {
+        formId: CLONED_ID,
+        seasonCode: "S26",
+        formName: "Original Form", // Original form name
+        openTime: null,
+        closeTime: null,
+        tags: ["registration", "updated"],
+      };
+
+      vi.mocked(cloneForm).mockResolvedValue(mockCloned);
+
+      // Test cloning without specifying formName
+      const res = await app.request(`/seasons/S26/forms/${FORM_ID}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // Empty body
+      });
+
+      expect(res.status).toBe(201);
+
+      const responseBody = await res.json();
+      expect(responseBody.formName).toBe("Original Form");
+
+      // Verify cloneForm was called with undefined formName
+      expect(cloneForm).toHaveBeenCalledWith("S26", FORM_ID, undefined);
     });
   });
 

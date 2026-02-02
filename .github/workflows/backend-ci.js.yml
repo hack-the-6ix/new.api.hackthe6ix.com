@@ -26,9 +26,6 @@ jobs:
       - name: Lint check
         if: success() || failure()
         run: bun run lint
-      - name: Format check
-        if: success() || failure()
-        run: bun run format
       - name: Run tests with coverage check
         if: success() || failure()
         run: bun run test

@@ -1,4 +1,4 @@
-import { pgTable, char, uuid, unique, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, char, uuid, primaryKey } from "drizzle-orm/pg-core";
 import { season } from "./season";
 
 export const mentor = pgTable(
@@ -9,8 +9,5 @@ export const mentor = pgTable(
       .notNull()
       .references(() => season.seasonCode, { onUpdate: "cascade" }),
   },
-  (t) => [
-    primaryKey({ columns: [t.userId, t.seasonCode] }),
-    unique().on(t.userId, t.seasonCode),
-  ],
+  (t) => [primaryKey({ columns: [t.userId, t.seasonCode] })],
 );

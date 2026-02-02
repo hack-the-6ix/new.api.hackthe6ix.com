@@ -3,7 +3,6 @@ import {
   pgEnum,
   char,
   uuid,
-  unique,
   real,
   text,
   primaryKey,
@@ -30,8 +29,5 @@ export const hacker = pgTable(
     status: hackerStatusEnum("status"),
     nfcId: text("nfcId").unique(),
   },
-  (t) => [
-    unique().on(t.userId, t.seasonCode),
-    primaryKey({ columns: [t.userId, t.seasonCode] }),
-  ],
+  (t) => [primaryKey({ columns: [t.userId, t.seasonCode] })],
 );

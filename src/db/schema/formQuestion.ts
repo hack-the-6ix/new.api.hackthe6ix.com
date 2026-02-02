@@ -14,7 +14,7 @@ import { form } from "./form";
 export const formQuestion = pgTable(
   "formQuestion",
   {
-    formQuestionId: varchar("formQuestionId", { length: 80 }),
+    formQuestionRef: varchar("formQuestionRef", { length: 80 }).notNull(),
     formId: uuid("formId")
       .notNull()
       .default(sql`uuidv7()`),
@@ -28,7 +28,7 @@ export const formQuestion = pgTable(
       .default(sql`ARRAY[]::text[]`),
   },
   (t) => [
-    primaryKey({ columns: [t.formQuestionId, t.formId, t.seasonCode] }),
+    primaryKey({ columns: [t.formQuestionRef, t.formId, t.seasonCode] }),
     foreignKey({
       columns: [t.seasonCode, t.formId],
       foreignColumns: [form.seasonCode, form.formId], // form(seasonCode, eventId)

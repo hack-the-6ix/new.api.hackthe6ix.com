@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { ApiError } from "@/lib/errors";
 
 export interface CreateFormQuestionInput {
-  formQuestionId: string;
+  formQuestionRef: string;
   questionType: string;
   tags?: string[];
 }
@@ -73,7 +73,7 @@ export const createForm = async (input: CreateFormInput) => {
       if (input.questions && input.questions.length > 0) {
         await tx.insert(formQuestion).values(
           input.questions.map((q) => ({
-            formQuestionId: q.formQuestionId,
+            formQuestionRef: q.formQuestionRef,
             formId: createdForm.formId,
             seasonCode: input.seasonCode,
             questionType: q.questionType,
@@ -154,7 +154,7 @@ export const updateForm = async (input: UpdateFormInput) => {
         if (input.questions.length > 0) {
           await tx.insert(formQuestion).values(
             input.questions.map((q) => ({
-              formQuestionId: q.formQuestionId,
+              formQuestionRef: q.formQuestionRef,
               formId: input.formId,
               seasonCode: input.seasonCode,
               questionType: q.questionType,
@@ -197,10 +197,14 @@ export const deleteForm = async (seasonCode: string, formId: string) => {
   }
 };
 
-export const cloneForm = async (seasonCode: string, formId: string) => {
+export const cloneForm = async (
+  seasonCode: string,
+  formId: string,
+  formName?: string,
+) => {
   try {
     return await db.transaction(async (tx) => {
-      // Load existing form
+      // Load source form
       const [src] = await tx
         .select()
         .from(form)
@@ -214,7 +218,7 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
         });
       }
 
-      // Load existing questions
+      // Load source questions
       const srcQuestions = await tx
         .select()
         .from(formQuestion)
@@ -225,30 +229,30 @@ export const cloneForm = async (seasonCode: string, formId: string) => {
           ),
         );
 
-      // Create new form (same fields)
+      // Create cloned form (with optional formName)
       const [cloned] = await tx
         .insert(form)
         .values({
           seasonCode: src.seasonCode,
+          formName: formName || src.formName,
           openTime: src.openTime,
           closeTime: src.closeTime,
           tags: src.tags ?? [],
+          // new id auto generated
         })
         .returning();
 
-      // Clone questions (new formId; new question ids to avoid collisions)
       if (srcQuestions.length > 0) {
-        await tx.insert(formQuestion).values(
-          srcQuestions.map((q) => ({
-            formQuestionId: crypto.randomUUID(),
-            formId: cloned.formId,
-            seasonCode,
-            questionType: q.questionType,
-            tags: q.tags ?? [],
-          })),
-        );
-      }
+        const newQuestions = srcQuestions.map((q) => ({
+          formQuestionRef: q.formQuestionRef,
+          formId: cloned.formId,
+          seasonCode: src.seasonCode,
+          questionType: q.questionType,
+          tags: q.tags ?? [],
+        }));
 
+        await tx.insert(formQuestion).values(newQuestions);
+      }
       return cloned;
     });
   } catch (error: unknown) {

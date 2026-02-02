@@ -3,13 +3,12 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --hot src/server.ts",
-    "build": "bun build src/server.ts --outdir=dist",
-    "start": "bun run dist/index.js",
+    "build": "bun build src/server.ts --outdir=dist --target=bun",
+    "build:scripts": "bun build scripts/seed.ts --outdir=dist/scripts --target=bun && bun build scripts/migrate.ts --outdir=dist/scripts --target=bun",
+    "start": "bun run dist/server.js",
     "db:seed": "bun run scripts/seed.ts",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --fix --ext .ts",
-    "format": "prettier . --check ",
-    "format:fix": "prettier . --write",
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage"
@@ -34,6 +33,7 @@
     "drizzle-seed": "^0.3.1",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "globals": "^16.5.0",
     "husky": "^9.1.7",
     "jiti": "^2.6.1",
@@ -44,9 +44,8 @@
     "vitest": "^4.0.8"
   },
   "lint-staged": {
-    "*.{js,ts,json}": [
-      "eslint --fix",
-      "prettier . --write"
+    "*": [
+      "eslint --fix"
     ]
   }
 }

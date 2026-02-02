@@ -13,7 +13,7 @@ import { genericErrorResponse } from "@/config/openapi";
 import { requireRoles, UserType } from "@/lib/auth";
 
 const questionSchema = z.object({
-  formQuestionId: z.string().max(80),
+  formQuestionRef: z.string().max(80),
   questionType: z.string(),
   tags: z.array(z.string()).optional().default([]),
 });
@@ -35,6 +35,7 @@ const updateFormBodySchema = z.object({
 const formSchema = z.object({
   formId: z.guid(),
   seasonCode: z.string().length(3),
+  formName: z.string().nullable(),
   openTime: z.iso.datetime().nullable(),
   closeTime: z.iso.datetime().nullable(),
   tags: z.array(z.string()),
@@ -52,6 +53,12 @@ const formQuestionSchema = z.object({
 const formAndResponseSchema = formSchema.extend({
   questions: z.array(formQuestionSchema),
 });
+
+const cloneFormBodySchema = z
+  .object({
+    formName: z.string().min(1).max(255).optional(),
+  })
+  .optional();
 
 const formsRoute = new Hono();
 
@@ -185,18 +192,25 @@ formsRoute.post(
   }),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
+  validator("json", cloneFormBodySchema),
   requireRoles(UserType.Admin),
   async (c) => {
     const params = c.req.valid("param");
+    const body = c.req.valid("json") || {};
 
-    const cloned = await cloneForm(params.seasonCode, params.formId);
+    const cloned = await cloneForm(
+      params.seasonCode,
+      params.formId,
+      body.formName,
+    );
 
     return c.json(
       {
         formId: cloned.formId,
         seasonCode: cloned.seasonCode,
+        formName: cloned.formName,
         openTime: cloned.openTime?.toISOString() ?? null,
         closeTime: cloned.closeTime?.toISOString() ?? null,
         tags: cloned.tags,
@@ -226,7 +240,7 @@ formsRoute.post(
   }),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   validator("json", updateFormBodySchema),
   requireRoles(UserType.Admin),
@@ -274,7 +288,7 @@ formsRoute.delete(
   }),
   validator(
     "param",
-    z.object({ seasonCode: z.string().length(3), formId: z.string().uuid() }),
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
   ),
   requireRoles(UserType.Admin),
   async (c) => {
