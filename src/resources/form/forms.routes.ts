@@ -76,6 +76,7 @@ const getAllFormsDescription = {
     },
     ...genericErrorResponse(500),
     ...genericErrorResponse(401),
+    ...genericErrorResponse(404),
   },
 };
 
@@ -108,6 +109,7 @@ const getFormsDescription = {
     },
     ...genericErrorResponse(500),
     ...genericErrorResponse(401),
+    ...genericErrorResponse(404),
   },
 };
 

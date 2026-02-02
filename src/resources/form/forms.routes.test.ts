@@ -80,6 +80,7 @@ vi.mock("@/resources/form/forms.service", () => ({
   deleteForm: vi.fn(),
   cloneForm: vi.fn(),
   getForms: vi.fn(),
+  getAllForms: vi.fn(),
 }));
 
 // ---- actual imports AFTER mocks ----
@@ -90,6 +91,7 @@ import {
   deleteForm,
   cloneForm,
   getForms,
+  getAllForms,
 } from "@/resources/form/forms.service";
 import { ApiError, handleError } from "@/lib/errors";
 
@@ -150,7 +152,7 @@ describe("Forms routes", () => {
           tags: ["registration"],
         },
       ];
-      (getForms as Mock).mockResolvedValue(mockForms);
+      (getAllForms as Mock).mockResolvedValue(mockForms);
 
       // exercise
       const res = await app.request("/seasons/S26/forms");
@@ -158,12 +160,12 @@ describe("Forms routes", () => {
       // verify
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(mockForms);
-      expect(getForms).toHaveBeenCalledWith("S26");
+      expect(getAllForms).toHaveBeenCalledWith("S26");
     });
 
     it("returns empty array when no forms exist", async () => {
       // setup
-      (getForms as Mock).mockResolvedValue([]);
+      (getAllForms as Mock).mockResolvedValue([]);
 
       // exercise
       const res = await app.request("/seasons/S26/forms");

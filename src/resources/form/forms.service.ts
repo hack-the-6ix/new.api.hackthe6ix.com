@@ -37,13 +37,13 @@ export const getForms = async (seasonCode: string, formId: string) => {
       .from(form)
       .where(and(eq(form.seasonCode, seasonCode), eq(form.formId, formId)))
       .limit(1);
-    const questions = await await db
+    const questions = await db
       .select()
       .from(formQuestion)
       .where(
         and(
           eq(formQuestion.seasonCode, seasonCode),
-          formId ? eq(formQuestion.formId, formId) : undefined,
+          eq(formQuestion.formId, formId),
         ),
       );
     return formResult[0]
