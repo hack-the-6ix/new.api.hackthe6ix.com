@@ -18,6 +18,45 @@ export interface CreateFormInput {
   questions?: CreateFormQuestionInput[];
 }
 
+export const getAllForms = async (seasonCode: string) => {
+  try {
+    const result = await db
+      .select()
+      .from(form)
+      .where(eq(form.seasonCode, seasonCode));
+    return result ?? null;
+  } catch (error: unknown) {
+    throw handleDbError(error);
+  }
+};
+
+export const getForms = async (seasonCode: string, formId: string) => {
+  try {
+    const formResult = await db
+      .select()
+      .from(form)
+      .where(and(eq(form.seasonCode, seasonCode), eq(form.formId, formId)))
+      .limit(1);
+    const questions = await db
+      .select()
+      .from(formQuestion)
+      .where(
+        and(
+          eq(formQuestion.seasonCode, seasonCode),
+          eq(formQuestion.formId, formId),
+        ),
+      );
+    return formResult[0]
+      ? {
+          ...formResult[0],
+          questions,
+        }
+      : null;
+  } catch (error: unknown) {
+    throw handleDbError(error);
+  }
+};
+
 export const createForm = async (input: CreateFormInput) => {
   try {
     return await db.transaction(async (tx) => {

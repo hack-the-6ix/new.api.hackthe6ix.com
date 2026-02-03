@@ -6,6 +6,8 @@ import {
   updateForm,
   deleteForm,
   cloneForm,
+  getAllForms,
+  getForms,
 } from "@/resources/form/forms.service";
 import { genericErrorResponse } from "@/config/openapi";
 import { requireRoles, UserType } from "@/lib/auth";
@@ -39,6 +41,19 @@ const formSchema = z.object({
   tags: z.array(z.string()),
 });
 
+const formQuestionSchema = z.object({
+  formQuestionId: z.string().length(80),
+  formName: z.string,
+  formId: z.guid(),
+  seasonCode: z.string().length(3),
+  questionType: z.string(),
+  tags: z.string(),
+});
+
+const formAndResponseSchema = formSchema.extend({
+  questions: z.array(formQuestionSchema),
+});
+
 const cloneFormBodySchema = z
   .object({
     formName: z.string().min(1).max(255).optional(),
@@ -46,6 +61,73 @@ const cloneFormBodySchema = z
   .optional();
 
 const formsRoute = new Hono();
+
+// --- GET ALL FORMS ---
+const getAllFormsDescription = {
+  summary: "Get all Forms",
+  description: "Get all forms within a season (Admin Only",
+  tags: ["Form Responses"],
+  responses: {
+    200: {
+      description: "Successful response",
+      content: {
+        "application/json": { schema: resolver(z.array(formSchema)) },
+      },
+    },
+    ...genericErrorResponse(500),
+    ...genericErrorResponse(401),
+    ...genericErrorResponse(404),
+  },
+};
+
+formsRoute.get(
+  "/seasons/:seasonCode/forms",
+  describeRoute(getAllFormsDescription),
+  validator("param", z.object({ seasonCode: z.string().length(3) })),
+  requireRoles(UserType.Admin),
+  async (c) => {
+    const seasonCode = c.req.valid("param").seasonCode;
+
+    const responses = await getAllForms(seasonCode);
+    return c.json(responses);
+  },
+);
+
+// --- GET FORM ---
+const getFormsDescription = {
+  summary: "Get specific Forms",
+  description: "Get a forms based on the given form id",
+  tags: ["Form Responses"],
+  responses: {
+    200: {
+      description: "Successful response",
+      content: {
+        "application/json": {
+          schema: resolver(formAndResponseSchema),
+        },
+      },
+    },
+    ...genericErrorResponse(500),
+    ...genericErrorResponse(401),
+    ...genericErrorResponse(404),
+  },
+};
+
+formsRoute.get(
+  "/seasons/:seasonCode/forms/:formId",
+  describeRoute(getFormsDescription),
+  validator(
+    "param",
+    z.object({ seasonCode: z.string().length(3), formId: z.guid() }),
+  ),
+  async (c) => {
+    const seasonCode = c.req.valid("param").seasonCode;
+    const formId = c.req.valid("param").formId;
+
+    const responses = await getForms(seasonCode, formId);
+    return c.json(responses);
+  },
+);
 
 // --- CREATE ---
 formsRoute.post(

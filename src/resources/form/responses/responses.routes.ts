@@ -14,7 +14,7 @@ import { requireRoles, UserType, getUserId } from "@/lib/auth";
 
 const formResponsesRoute = new Hono();
 
-const formResponseSchema = z.object({
+export const formResponseSchema = z.object({
   formResponseId: z.guid(),
   formId: z.guid(),
   userId: z.guid(),
